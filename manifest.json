@@ -1,0 +1,56 @@
+{
+  "$schema": "https://haloforge.dev/schemas/plugin/v1.json",
+  "id": "dev.haloforge.image-studio",
+  "name": "Image Studio",
+  "version": "0.1.0",
+  "description": "Professional OpenAI-compatible image generation workspace for HaloForge.",
+  "long_description": "Adds a top-level Image Studio module with prompt-driven image generation, reference images, edit mode, task history, enterprise gateway support, and export workflows.",
+  "author": "HaloForge Team",
+  "homepage": "https://haloforge.link/catalog/plugins/image-studio",
+  "license": "MIT",
+  "keywords": ["image", "generation", "openai", "enterprise", "studio"],
+  "icon": "assets/icon.png",
+  "compatibility": {
+    "min_app_version": "0.6.10",
+    "min_host_api_version": "0.1.0",
+    "platforms": ["windows", "macos", "linux"]
+  },
+  "host_capabilities": ["navigation", "theme_read", "event_subscribe", "enterprise_gateway"],
+  "capability_levels": [0],
+  "integration": {
+    "level0": {
+      "module_id": "image-studio",
+      "module_label": "Image Studio",
+      "module_icon": "Image",
+      "sidebar_position": "main",
+      "sidebar_order": 24,
+      "panel_entry": "dist/index.js"
+    }
+  },
+  "entry": {
+    "frontend": "dist/index.js",
+    "frontend_styles": "dist/styles.css"
+  },
+  "permissions": [
+    { "type": "host_navigation" },
+    { "type": "host_theme_read" },
+    { "type": "host_event_subscribe" },
+    { "type": "host_enterprise_gateway_access" }
+  ],
+  "settings_schema": {
+    "type": "object",
+    "properties": {
+      "default_model": {
+        "type": "string",
+        "title": "Default image model",
+        "default": "gpt-image-1"
+      },
+      "default_size": {
+        "type": "string",
+        "title": "Default image size",
+        "default": "1024x1024"
+      }
+    }
+  },
+  "commands": []
+}
