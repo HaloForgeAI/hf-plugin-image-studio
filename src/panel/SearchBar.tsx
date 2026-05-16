@@ -1,5 +1,6 @@
 import { AppSelect } from "@haloforge/plugin-sdk";
-import { Search, Star } from "lucide-react";
+import { Search, Star, X } from "lucide-react";
+import { useState } from "react";
 import type { ImageStudioT } from "../i18n";
 import type { TaskStatusFilter } from "../types";
 
@@ -22,8 +23,31 @@ export function SearchBar({
   onFilterStatusChange,
   onFilterFavoriteChange,
 }: SearchBarProps) {
+  const [searchOpen, setSearchOpen] = useState(Boolean(searchQuery.trim()));
+
   return (
     <section className="hfis-search" data-no-drag-select>
+      <button
+        type="button"
+        className={`hfis-search-toggle ${searchOpen ? "is-active" : ""}`}
+        onClick={() => setSearchOpen((value) => !value)}
+        title={t("search.open")}
+      >
+        <Search size={18} />
+      </button>
+      <label className={`hfis-search-input ${searchOpen ? "is-open" : ""}`}>
+        <Search size={15} />
+        <input
+          value={searchQuery}
+          onChange={(event) => onSearchQueryChange(event.target.value)}
+          placeholder={t("search.placeholder")}
+        />
+        {searchQuery && (
+          <button type="button" onClick={() => onSearchQueryChange("")} title={t("search.clear")}>
+            <X size={14} />
+          </button>
+        )}
+      </label>
       <button
         type="button"
         className={`hfis-fav-filter ${filterFavorite ? "is-active" : ""}`}
@@ -43,14 +67,6 @@ export function SearchBar({
         <option value="running">{t("status.running")}</option>
         <option value="error">{t("status.error")}</option>
       </AppSelect>
-      <label className="hfis-search-input">
-        <Search size={16} />
-        <input
-          value={searchQuery}
-          onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder={t("search.placeholder")}
-        />
-      </label>
     </section>
   );
 }

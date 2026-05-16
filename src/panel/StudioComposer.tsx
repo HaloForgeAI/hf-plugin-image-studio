@@ -1,8 +1,9 @@
 import { AppSelect } from "@haloforge/plugin-sdk";
-import { Download, ImagePlus, Paintbrush, Star, Trash2, X } from "lucide-react";
+import { ImagePlus, Paintbrush, Plus, SendHorizontal, SlidersHorizontal, Star, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { ImageStudioT } from "../i18n";
 import type { ReferenceImage, StudioParams } from "../types";
+import { IMAGE_MODEL_OPTIONS } from "../modelOptions";
 import { MaskEditorModal } from "./MaskEditorModal";
 
 interface StudioComposerProps {
@@ -46,7 +47,16 @@ export function StudioComposer({
 }: StudioComposerProps) {
   const atImageLimit = references.length >= 16;
   const [maskReferenceId, setMaskReferenceId] = useState<string | null>(null);
+  const [paramsOpen, setParamsOpen] = useState(false);
   const maskReference = maskReferenceId ? references.find((reference) => reference.id === maskReferenceId) ?? null : null;
+  const modelLabel = IMAGE_MODEL_OPTIONS.find((model) => model.value === params.model)?.label ?? params.model;
+  const paramSummary = [
+    modelLabel,
+    params.size,
+    params.quality === "auto" ? null : params.quality,
+    params.count > 1 ? t("task.outputs", { count: params.count }) : null,
+    params.format,
+  ].filter(Boolean).join(" · ");
 
   return (
     <div className="hfis-input-dock" data-input-bar data-no-drag-select>
@@ -69,98 +79,40 @@ export function StudioComposer({
       )}
 
       <section className="hfis-composer">
-        {references.length > 0 && (
-          <div className="hfis-reference-row">
-            {references.map((reference, index) => (
-              <div key={reference.id} className={`hfis-reference-thumb ${reference.maskDataUrl ? "has-mask" : ""}`} title={reference.name}>
-                <img src={reference.dataUrl} alt="" />
-                <span>@{index + 1}</span>
-                <button type="button" className="hfis-reference-remove" onClick={() => onRemoveReference(reference.id)} title={t("composer.removeReference")}>
-                  <X size={12} />
-                </button>
-                <button type="button" className="hfis-reference-mask" onClick={() => setMaskReferenceId(reference.id)} title={t("composer.editMask")}>
-                  <Paintbrush size={12} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="hfis-composer-core">
+          {references.length > 0 && (
+            <div className="hfis-reference-row">
+              {references.map((reference, index) => (
+                <div key={reference.id} className={`hfis-reference-thumb ${reference.maskDataUrl ? "has-mask" : ""}`} title={reference.name}>
+                  <img src={reference.dataUrl} alt="" />
+                  <span>@{index + 1}</span>
+                  <button type="button" className="hfis-reference-remove" onClick={() => onRemoveReference(reference.id)} title={t("composer.removeReference")}>
+                    <X size={12} />
+                  </button>
+                  <button type="button" className="hfis-reference-mask" onClick={() => setMaskReferenceId(reference.id)} title={t("composer.editMask")}>
+                    <Paintbrush size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
-        <textarea
-          value={prompt}
-          onChange={(event) => onPromptChange(event.target.value)}
-          placeholder={t("composer.placeholder")}
-        />
+          <textarea
+            value={prompt}
+            onChange={(event) => onPromptChange(event.target.value)}
+            placeholder={t("composer.placeholder")}
+          />
+        </div>
 
         <div className="hfis-composer-bottom">
-          <div className="hfis-params">
-            <label>
-              <span>{t("composer.model")}</span>
-              <input value={params.model} onChange={(event) => onParamsChange({ ...params, model: event.target.value })} />
-            </label>
-            <label>
-              <span>{t("composer.size")}</span>
-              <AppSelect className="hfis-param-select" value={params.size} onChange={(event) => onParamsChange({ ...params, size: event.target.value })} placement="top">
-                <option value="auto">auto</option>
-                <option value="1024x1024">1024x1024</option>
-                <option value="1536x1024">1536x1024</option>
-                <option value="1024x1536">1024x1536</option>
-              </AppSelect>
-            </label>
-            <label>
-              <span>{t("composer.quality")}</span>
-              <AppSelect className="hfis-param-select" value={params.quality} onChange={(event) => onParamsChange({ ...params, quality: event.target.value as StudioParams["quality"] })} placement="top">
-                <option value="auto">auto</option>
-                <option value="low">low</option>
-                <option value="medium">medium</option>
-                <option value="high">high</option>
-              </AppSelect>
-            </label>
-            <label>
-              <span>{t("composer.format")}</span>
-              <AppSelect className="hfis-param-select" value={params.format} onChange={(event) => onParamsChange({ ...params, format: event.target.value as StudioParams["format"] })} placement="top">
-                <option value="png">png</option>
-                <option value="jpeg">jpeg</option>
-                <option value="webp">webp</option>
-              </AppSelect>
-            </label>
-            <label>
-              <span>{t("composer.moderation")}</span>
-              <AppSelect className="hfis-param-select" value={params.moderation} onChange={(event) => onParamsChange({ ...params, moderation: event.target.value as StudioParams["moderation"] })} placement="top">
-                <option value="auto">auto</option>
-                <option value="low">low</option>
-              </AppSelect>
-            </label>
-            <label>
-              <span>{t("composer.count")}</span>
-              <input
-                type="number"
-                min={1}
-                max={4}
-                value={params.count}
-                onChange={(event) => onParamsChange({ ...params, count: clampCount(Number(event.target.value)) })}
-              />
-            </label>
-            <label>
-              <span>{t("composer.compression")}</span>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                disabled={params.format === "png"}
-                value={params.compression ?? ""}
-                placeholder={params.format === "png" ? "n/a" : "auto"}
-                onChange={(event) => onParamsChange({
-                  ...params,
-                  compression: event.target.value.trim() === "" ? null : clampPercent(Number(event.target.value)),
-                })}
-              />
-            </label>
+          <div className="hfis-param-summary" title={paramSummary}>
+            <SlidersHorizontal size={14} />
+            <span>{paramSummary}</span>
           </div>
 
           <div className="hfis-composer-actions">
-            <label className={`hfis-attach ${atImageLimit ? "is-disabled" : ""}`} title={atImageLimit ? t("composer.referenceLimit") : t("composer.addReference")}>
-              <ImagePlus size={20} />
+            <label className={`hfis-attach hfis-tooltip-fast ${atImageLimit ? "is-disabled" : ""}`} data-tip={atImageLimit ? t("composer.referenceLimit") : t("composer.addReference")} title={atImageLimit ? t("composer.referenceLimit") : t("composer.addReference")}>
+              <ImagePlus size={18} />
               <input
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
@@ -172,14 +124,96 @@ export function StudioComposer({
                 }}
               />
             </label>
+            <div className="hfis-param-popover-wrap">
+              <button
+                type="button"
+                className={`hfis-param-toggle hfis-tooltip-fast ${paramsOpen ? "is-active" : ""}`}
+                onClick={() => setParamsOpen((value) => !value)}
+                title={t("composer.adjustParams")}
+                data-tip={t("composer.adjustParams")}
+              >
+                <Plus size={18} />
+              </button>
+              {paramsOpen && (
+                <div className="hfis-param-popover">
+                  <label>
+                    <span>{t("composer.model")}</span>
+                    <AppSelect className="hfis-param-select" value={params.model} onChange={(event) => onParamsChange({ ...params, model: event.target.value })} placement="top">
+                      {IMAGE_MODEL_OPTIONS.map((model) => (
+                        <option key={model.value} value={model.value}>{model.label}</option>
+                      ))}
+                    </AppSelect>
+                  </label>
+                  <label>
+                    <span>{t("composer.size")}</span>
+                    <AppSelect className="hfis-param-select" value={params.size} onChange={(event) => onParamsChange({ ...params, size: event.target.value })} placement="top">
+                      <option value="auto">auto</option>
+                      <option value="1024x1024">1024x1024</option>
+                      <option value="1536x1024">1536x1024</option>
+                      <option value="1024x1536">1024x1536</option>
+                    </AppSelect>
+                  </label>
+                  <label>
+                    <span>{t("composer.quality")}</span>
+                    <AppSelect className="hfis-param-select" value={params.quality} onChange={(event) => onParamsChange({ ...params, quality: event.target.value as StudioParams["quality"] })} placement="top">
+                      <option value="auto">auto</option>
+                      <option value="low">low</option>
+                      <option value="medium">medium</option>
+                      <option value="high">high</option>
+                    </AppSelect>
+                  </label>
+                  <label>
+                    <span>{t("composer.format")}</span>
+                    <AppSelect className="hfis-param-select" value={params.format} onChange={(event) => onParamsChange({ ...params, format: event.target.value as StudioParams["format"] })} placement="top">
+                      <option value="png">png</option>
+                      <option value="jpeg">jpeg</option>
+                      <option value="webp">webp</option>
+                    </AppSelect>
+                  </label>
+                  <label>
+                    <span>{t("composer.moderation")}</span>
+                    <AppSelect className="hfis-param-select" value={params.moderation} onChange={(event) => onParamsChange({ ...params, moderation: event.target.value as StudioParams["moderation"] })} placement="top">
+                      <option value="auto">auto</option>
+                      <option value="low">low</option>
+                    </AppSelect>
+                  </label>
+                  <label>
+                    <span>{t("composer.count")}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={4}
+                      value={params.count}
+                      onChange={(event) => onParamsChange({ ...params, count: clampCount(Number(event.target.value)) })}
+                    />
+                  </label>
+                  <label>
+                    <span>{t("composer.compression")}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      disabled={params.format === "png"}
+                      value={params.compression ?? ""}
+                      placeholder={params.format === "png" ? "n/a" : "auto"}
+                      onChange={(event) => onParamsChange({
+                        ...params,
+                        compression: event.target.value.trim() === "" ? null : clampPercent(Number(event.target.value)),
+                      })}
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
             <button
               type="button"
-              className="hfis-submit"
+              className="hfis-submit hfis-tooltip-fast"
               disabled={!prompt.trim() || !gatewayReady}
               onClick={onSubmit}
               title={gatewayReady ? t("composer.generate") : t("composer.gatewayUnavailable")}
+              data-tip={gatewayReady ? t("composer.generate") : t("composer.gatewayUnavailable")}
             >
-              <Download size={20} />
+              <SendHorizontal size={18} />
             </button>
           </div>
         </div>

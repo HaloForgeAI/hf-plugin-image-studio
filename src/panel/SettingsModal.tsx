@@ -2,6 +2,7 @@ import { AppSelect } from "@haloforge/plugin-sdk";
 import { X } from "lucide-react";
 import type { ImageStudioT } from "../i18n";
 import type { StudioSettings } from "../types";
+import { IMAGE_MODEL_OPTIONS } from "../modelOptions";
 
 interface SettingsModalProps {
   t: ImageStudioT;
@@ -27,7 +28,11 @@ export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }
         <div className="hfis-settings-grid">
           <label>
             <span>{t("settings.defaultModel")}</span>
-            <input value={settings.defaultModel} onChange={(event) => onChange({ ...settings, defaultModel: event.target.value })} />
+            <AppSelect className="hfis-settings-select" value={settings.defaultModel} onChange={(event) => onChange({ ...settings, defaultModel: event.target.value })}>
+              {IMAGE_MODEL_OPTIONS.map((model) => (
+                <option key={model.value} value={model.value}>{model.label}</option>
+              ))}
+            </AppSelect>
           </label>
           <label>
             <span>{t("settings.defaultSize")}</span>

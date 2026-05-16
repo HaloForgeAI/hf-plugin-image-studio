@@ -232,31 +232,31 @@ export function ImageStudioPanel() {
         onSettingsClick={() => setSettingsOpen(true)}
       />
 
-      <main className="hfis-main" data-drag-select-surface>
-        <div className="hfis-shell">
-          <SearchBar
-            t={t}
-            filterFavorite={filterFavorite}
-            filterStatus={filterStatus}
-            searchQuery={searchQuery}
-            onFilterFavoriteChange={setFilterFavorite}
-            onFilterStatusChange={setFilterStatus}
-            onSearchQueryChange={setSearchQuery}
-          />
+      <div className="hfis-toolbar">
+        <SearchBar
+          t={t}
+          filterFavorite={filterFavorite}
+          filterStatus={filterStatus}
+          searchQuery={searchQuery}
+          onFilterFavoriteChange={setFilterFavorite}
+          onFilterStatusChange={setFilterStatus}
+          onSearchQueryChange={setSearchQuery}
+        />
+      </div>
 
-          <TaskGrid
-            t={t}
-            tasks={filteredTasks}
-            selectedTaskIds={selectedTaskIds}
-            onReuseTask={retryTask}
-            onEditTask={editFromTask}
-            onDeleteTask={deleteTask}
-            onToggleFavorite={toggleFavorite}
-            onToggleSelection={toggleSelection}
-            onOpenTask={(task) => setDetailTaskId(task.id)}
-            onOpenLightbox={(images, index) => setLightbox({ images, index })}
-          />
-        </div>
+      <main className="hfis-main" data-drag-select-surface>
+        <TaskGrid
+          t={t}
+          tasks={filteredTasks}
+          selectedTaskIds={selectedTaskIds}
+          onReuseTask={retryTask}
+          onEditTask={editFromTask}
+          onDeleteTask={deleteTask}
+          onToggleFavorite={toggleFavorite}
+          onToggleSelection={toggleSelection}
+          onOpenTask={(task) => setDetailTaskId(task.id)}
+          onOpenLightbox={(images, index) => setLightbox({ images, index })}
+        />
       </main>
 
       <StudioComposer

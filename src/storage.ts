@@ -1,7 +1,8 @@
 import type { ImageStudioTask, StudioParams, StudioSettings } from "./types";
+import { DEFAULT_IMAGE_MODEL, isImageModel } from "./modelOptions";
 
 export const DEFAULT_SETTINGS: StudioSettings = {
-  defaultModel: "gpt-image-1",
+  defaultModel: DEFAULT_IMAGE_MODEL,
   defaultSize: "1024x1024",
   gatewayMode: "auto",
   customBaseUrl: "",
@@ -88,9 +89,10 @@ export function createDefaultParams(settings: StudioSettings): StudioParams {
 
 function normalizeSettings(value: Partial<StudioSettings>): StudioSettings {
   const rawGatewayMode = typeof value.gatewayMode === "string" ? String(value.gatewayMode) : "";
+  const rawDefaultModel = typeof value.defaultModel === "string" ? value.defaultModel.trim() : "";
   return {
-    defaultModel: typeof value.defaultModel === "string" && value.defaultModel.trim()
-      ? value.defaultModel.trim()
+    defaultModel: isImageModel(rawDefaultModel)
+      ? rawDefaultModel
       : DEFAULT_SETTINGS.defaultModel,
     defaultSize: typeof value.defaultSize === "string" && value.defaultSize.trim()
       ? value.defaultSize.trim()
