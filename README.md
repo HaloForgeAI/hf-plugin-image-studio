@@ -35,7 +35,7 @@ npm install
 npm run plugin:check
 npm run plugin:pack
 cd /Users/loyio/gitRepo/HaloForge
-npm run hf -- plugin install local /Users/loyio/gitrepo/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.2.4.hfpkg --json
+npm run hf -- plugin install local /Users/loyio/gitrepo/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.0.hfpkg --json
 ```
 
 The ordinary browser can validate the standalone plugin UI. Real enterprise image generation must be tested inside HaloForge/Tauri because a normal browser tab does not provide Tauri IPC or the HaloForge plugin host bridge.
@@ -45,7 +45,7 @@ The ordinary browser can validate the standalone plugin UI. Real enterprise imag
 ```bash
 gh workflow run "Plugin Release" \
   --repo HaloForgeAI/hf-plugin-image-studio \
-  -f release_tag=v0.2.4 \
-  -f release_name="Image Studio v0.2.4" \
+  -f release_tag=v0.1.0 \
+  -f release_name="Image Studio v0.1.0" \
   -f source=official
 ```

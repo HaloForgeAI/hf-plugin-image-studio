@@ -2,7 +2,7 @@
   "$schema": "https://haloforge.dev/schemas/plugin/v1.json",
   "id": "dev.haloforge.image-studio",
   "name": "Image Studio",
-  "version": "0.2.4",
+  "version": "0.1.0",
   "description": "Professional OpenAI-compatible image generation workspace for HaloForge.",
   "long_description": "Adds a top-level Image Studio module with prompt-driven image generation, reference images, edit mode, task history, enterprise gateway support, and export workflows.",
   "author": "HaloForge Team",
