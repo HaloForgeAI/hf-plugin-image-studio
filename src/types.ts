@@ -5,6 +5,9 @@ export interface StudioParams {
   size: string;
   quality: "auto" | "low" | "medium" | "high";
   count: number;
+  format: "png" | "jpeg" | "webp";
+  moderation: "auto" | "low";
+  compression: number | null;
 }
 
 export interface ReferenceImage {
@@ -12,6 +15,7 @@ export interface ReferenceImage {
   name: string;
   contentType: string;
   dataUrl: string;
+  maskDataUrl?: string | null;
 }
 
 export interface ImageStudioTask {
@@ -28,9 +32,24 @@ export interface ImageStudioTask {
     checksum_sha256: string;
   }>;
   revisedPrompt: string | null;
+  outputSizes: string[];
   status: TaskStatus;
   error: string | null;
   favorite: boolean;
+  selected: boolean;
   createdAt: number;
   finishedAt: number | null;
+}
+
+export type TaskStatusFilter = "all" | TaskStatus;
+export type GatewayMode = "auto" | "enterprise" | "custom";
+
+export interface StudioSettings {
+  defaultModel: string;
+  defaultSize: string;
+  gatewayMode: GatewayMode;
+  customBaseUrl: string;
+  customApiKey: string;
+  clearPromptAfterSubmit: boolean;
+  persistHistory: boolean;
 }

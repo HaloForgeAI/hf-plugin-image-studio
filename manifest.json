@@ -2,14 +2,14 @@
   "$schema": "https://haloforge.dev/schemas/plugin/v1.json",
   "id": "dev.haloforge.image-studio",
   "name": "Image Studio",
-  "version": "0.1.0",
+  "version": "0.2.4",
   "description": "Professional OpenAI-compatible image generation workspace for HaloForge.",
   "long_description": "Adds a top-level Image Studio module with prompt-driven image generation, reference images, edit mode, task history, enterprise gateway support, and export workflows.",
   "author": "HaloForge Team",
   "homepage": "https://haloforge.link/catalog/plugins/image-studio",
   "license": "MIT",
   "keywords": ["image", "generation", "openai", "enterprise", "studio"],
-  "icon": "assets/icon.png",
+  "icon": "assets/icon.svg",
   "compatibility": {
     "min_app_version": "0.6.10",
     "min_host_api_version": "0.1.0",
@@ -35,7 +35,8 @@
     { "type": "host_navigation" },
     { "type": "host_theme_read" },
     { "type": "host_event_subscribe" },
-    { "type": "host_enterprise_gateway_access" }
+    { "type": "host_enterprise_gateway_access" },
+    { "type": "network_http" }
   ],
   "settings_schema": {
     "type": "object",
