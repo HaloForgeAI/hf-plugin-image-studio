@@ -37,6 +37,21 @@ jobs:
         with:
           node-version: 20
 
+      - name: Checkout plugin tooling
+        uses: actions/checkout@v4
+        with:
+          repository: HaloForgeAI/haloforge-plugin-api
+          ref: 0dfc74dd1971fa995d2f394a5f1ef4f7f0a17809
+          path: .hf-plugin-api
+
+      - name: Build plugin tooling
+        shell: pwsh
+        run: |
+          npm install --prefix .hf-plugin-api/sdk
+          npm run build --prefix .hf-plugin-api/sdk
+          npm install --prefix .hf-plugin-api/pack
+          npm run build --prefix .hf-plugin-api/pack
+
       - name: Validate release inputs
         shell: pwsh
         run: |
@@ -62,7 +77,7 @@ jobs:
       - name: Package .hfpkg
         shell: pwsh
         run: |
-          npx --yes @haloforge/plugin-pack@0.2.4 pack . --release --target x86_64-pc-windows-msvc --out dist/plugin-release
+          node .hf-plugin-api/pack/dist/cli.js pack . --release --target x86_64-pc-windows-msvc --out dist/plugin-release
           $pkg = Get-ChildItem dist/plugin-release -Filter *.hfpkg | Select-Object -First 1
           if (-not $pkg) { throw "No .hfpkg artifact was created." }
           $sha = Get-ChildItem dist/plugin-release -Filter *.hfpkg.sha256 | Select-Object -First 1
@@ -122,7 +137,7 @@ jobs:
         run: |
           $artifactUrl = "https://github.com/${{ github.repository }}/releases/download/$env:RELEASE_TAG/$env:PKG_NAME"
           $args = @(
-            "--yes", "@haloforge/plugin-pack@0.2.4",
+            ".hf-plugin-api/pack/dist/cli.js",
             "metadata", "$env:PKG_PATH",
             "--artifact-url", $artifactUrl,
             "--source", "${{ inputs.source }}",
@@ -137,7 +152,7 @@ jobs:
           if ($env:HF_PLUGIN_SIGNING_PRIVATE_KEY) {
             $args += @("--signing-key-env", "HF_PLUGIN_SIGNING_PRIVATE_KEY")
           }
-          npx @args
+          node @args
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to generate catalog draft metadata."
           }
@@ -172,7 +187,7 @@ jobs:
       - name: Submit catalog draft
         if: env.HF_ADMIN_TOKEN != ''
         shell: pwsh
-        run: npx --yes @haloforge/plugin-pack@0.2.4 submit dist/plugin-release/catalog-draft.json --api-base-url https://admin.haloforge.link --token-env HF_ADMIN_TOKEN
+        run: node .hf-plugin-api/pack/dist/cli.js submit dist/plugin-release/catalog-draft.json --api-base-url https://admin.haloforge.link --token-env HF_ADMIN_TOKEN
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
