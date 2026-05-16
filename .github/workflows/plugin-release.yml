@@ -38,19 +38,36 @@ jobs:
           node-version: 20
 
       - name: Checkout plugin tooling
-        uses: actions/checkout@v4
-        with:
-          repository: HaloForgeAI/haloforge-plugin-api
-          ref: 0dfc74dd1971fa995d2f394a5f1ef4f7f0a17809
-          path: .hf-plugin-api
+        shell: pwsh
+        run: |
+          git clone https://github.com/HaloForgeAI/haloforge-plugin-api.git "$env:RUNNER_TEMP/hf-plugin-api"
+          git -C "$env:RUNNER_TEMP/hf-plugin-api" checkout 0dfc74dd1971fa995d2f394a5f1ef4f7f0a17809
 
       - name: Build plugin tooling
         shell: pwsh
         run: |
-          npm install --prefix .hf-plugin-api/sdk
-          npm run build --prefix .hf-plugin-api/sdk
-          npm install --prefix .hf-plugin-api/pack
-          npm run build --prefix .hf-plugin-api/pack
+          npm install --prefix "$env:RUNNER_TEMP/hf-plugin-api/sdk"
+          npm run build --prefix "$env:RUNNER_TEMP/hf-plugin-api/sdk"
+          npm install --prefix "$env:RUNNER_TEMP/hf-plugin-api/pack"
+          npm run build --prefix "$env:RUNNER_TEMP/hf-plugin-api/pack"
+
+      - name: Use local plugin tooling
+        shell: pwsh
+        run: |
+          $script = @'
+          const fs = require("fs");
+
+          const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          pkg.dependencies ??= {};
+          pkg.devDependencies ??= {};
+          pkg.dependencies["@haloforge/plugin-sdk"] = `file:${process.env.RUNNER_TEMP.replace(/\\/g, "/")}/hf-plugin-api/sdk`;
+          pkg.devDependencies["@haloforge/plugin-pack"] = `file:${process.env.RUNNER_TEMP.replace(/\\/g, "/")}/hf-plugin-api/pack`;
+          fs.writeFileSync("package.json", `${JSON.stringify(pkg, null, 2)}\n`);
+          '@
+          Set-Content -Path .hf-use-local-tooling.cjs -Value $script
+          node .hf-use-local-tooling.cjs
+          Remove-Item .hf-use-local-tooling.cjs
+          npm install --package-lock-only --ignore-scripts
 
       - name: Validate release inputs
         shell: pwsh
@@ -77,7 +94,7 @@ jobs:
       - name: Package .hfpkg
         shell: pwsh
         run: |
-          node .hf-plugin-api/pack/dist/cli.js pack . --release --target x86_64-pc-windows-msvc --out dist/plugin-release
+          node "$env:RUNNER_TEMP/hf-plugin-api/pack/dist/cli.js" pack . --release --target x86_64-pc-windows-msvc --out dist/plugin-release
           $pkg = Get-ChildItem dist/plugin-release -Filter *.hfpkg | Select-Object -First 1
           if (-not $pkg) { throw "No .hfpkg artifact was created." }
           $sha = Get-ChildItem dist/plugin-release -Filter *.hfpkg.sha256 | Select-Object -First 1
@@ -137,7 +154,7 @@ jobs:
         run: |
           $artifactUrl = "https://github.com/${{ github.repository }}/releases/download/$env:RELEASE_TAG/$env:PKG_NAME"
           $args = @(
-            ".hf-plugin-api/pack/dist/cli.js",
+            "$env:RUNNER_TEMP/hf-plugin-api/pack/dist/cli.js",
             "metadata", "$env:PKG_PATH",
             "--artifact-url", $artifactUrl,
             "--source", "${{ inputs.source }}",
@@ -187,7 +204,7 @@ jobs:
       - name: Submit catalog draft
         if: env.HF_ADMIN_TOKEN != ''
         shell: pwsh
-        run: node .hf-plugin-api/pack/dist/cli.js submit dist/plugin-release/catalog-draft.json --api-base-url https://admin.haloforge.link --token-env HF_ADMIN_TOKEN
+        run: node "$env:RUNNER_TEMP/hf-plugin-api/pack/dist/cli.js" submit dist/plugin-release/catalog-draft.json --api-base-url https://admin.haloforge.link --token-env HF_ADMIN_TOKEN
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
