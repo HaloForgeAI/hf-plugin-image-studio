@@ -1,35 +1,28 @@
-import { HelpCircle, Image, Settings } from "lucide-react";
+import { Image, Settings } from "lucide-react";
 
 interface StudioHeaderProps {
+  title: string;
+  settingsTitle: string;
   gatewayReady: boolean;
   gatewayStatus: string;
   taskCount: number;
   onSettingsClick: () => void;
 }
 
-export function StudioHeader({ gatewayReady, gatewayStatus, taskCount, onSettingsClick }: StudioHeaderProps) {
+export function StudioHeader({ title, settingsTitle, gatewayReady, gatewayStatus, taskCount, onSettingsClick }: StudioHeaderProps) {
   return (
     <header className="hfis-header" data-no-drag-select>
       <div className="hfis-header-inner">
-        <a
-          href="https://github.com/CookSleep/gpt_image_playground"
-          target="_blank"
-          rel="noreferrer"
-          className="hfis-title"
-          title="Reference workflow: GPT Image Playground"
-        >
+        <div className="hfis-title">
           <Image size={18} />
-          <span>Image Studio</span>
-        </a>
+          <span>{title}</span>
+        </div>
         <div className="hfis-header-actions">
           <span className={`hfis-status ${gatewayReady ? "is-ready" : "is-error"}`}>
             {gatewayStatus}
           </span>
           <span className="hfis-counter">{taskCount} tasks</span>
-          <button type="button" className="hfis-icon-button" title="Guide">
-            <HelpCircle size={18} />
-          </button>
-          <button type="button" className="hfis-icon-button" title="Settings" onClick={onSettingsClick}>
+          <button type="button" className="hfis-icon-button" title={settingsTitle} onClick={onSettingsClick}>
             <Settings size={18} />
           </button>
         </div>

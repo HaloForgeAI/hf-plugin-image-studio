@@ -42,7 +42,7 @@ export interface ImageStudioTask {
 }
 
 export type TaskStatusFilter = "all" | TaskStatus;
-export type GatewayMode = "auto" | "enterprise" | "custom";
+export type GatewayMode = "auto" | "cloud" | "custom";
 
 export interface StudioSettings {
   defaultModel: string;

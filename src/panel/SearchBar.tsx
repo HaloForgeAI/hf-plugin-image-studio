@@ -1,7 +1,10 @@
+import { AppSelect } from "@haloforge/plugin-sdk";
 import { Search, Star } from "lucide-react";
+import type { ImageStudioT } from "../i18n";
 import type { TaskStatusFilter } from "../types";
 
 interface SearchBarProps {
+  t: ImageStudioT;
   searchQuery: string;
   filterStatus: TaskStatusFilter;
   filterFavorite: boolean;
@@ -11,6 +14,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({
+  t,
   searchQuery,
   filterStatus,
   filterFavorite,
@@ -24,26 +28,27 @@ export function SearchBar({
         type="button"
         className={`hfis-fav-filter ${filterFavorite ? "is-active" : ""}`}
         onClick={() => onFilterFavoriteChange(!filterFavorite)}
-        title={filterFavorite ? "Show all tasks" : "Favorites only"}
+        title={filterFavorite ? t("search.showAll") : t("search.favoriteOnly")}
       >
         <Star size={18} fill={filterFavorite ? "currentColor" : "none"} />
       </button>
-      <select
+      <AppSelect
+        className="hfis-app-select"
         value={filterStatus}
         onChange={(event) => onFilterStatusChange(event.target.value as TaskStatusFilter)}
-        title="Filter status"
+        title={t("search.statusTitle")}
       >
-        <option value="all">All status</option>
-        <option value="done">Done</option>
-        <option value="running">Running</option>
-        <option value="error">Error</option>
-      </select>
+        <option value="all">{t("status.all")}</option>
+        <option value="done">{t("status.done")}</option>
+        <option value="running">{t("status.running")}</option>
+        <option value="error">{t("status.error")}</option>
+      </AppSelect>
       <label className="hfis-search-input">
         <Search size={16} />
         <input
           value={searchQuery}
           onChange={(event) => onSearchQueryChange(event.target.value)}
-          placeholder="Search prompt or parameters..."
+          placeholder={t("search.placeholder")}
         />
       </label>
     </section>

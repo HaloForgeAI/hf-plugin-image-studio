@@ -1,63 +1,66 @@
+import { AppSelect } from "@haloforge/plugin-sdk";
 import { X } from "lucide-react";
+import type { ImageStudioT } from "../i18n";
 import type { StudioSettings } from "../types";
 
 interface SettingsModalProps {
+  t: ImageStudioT;
   settings: StudioSettings;
   onChange: (settings: StudioSettings) => void;
   onClose: () => void;
   onClearHistory: () => void;
 }
 
-export function SettingsModal({ settings, onChange, onClose, onClearHistory }: SettingsModalProps) {
+export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }: SettingsModalProps) {
   return (
     <div className="hfis-modal-backdrop" role="dialog" aria-modal="true">
       <section className="hfis-settings">
         <header className="hfis-detail-header">
           <div>
-            <h2>Image Studio settings</h2>
-            <p>Use the host gateway when available, or point community installs at an OpenAI-compatible endpoint.</p>
+            <h2>{t("settings.title")}</h2>
+            <p>{t("settings.subtitle")}</p>
           </div>
-          <button type="button" onClick={onClose} title="Close">
+          <button type="button" onClick={onClose} title={t("common.close")}>
             <X size={20} />
           </button>
         </header>
         <div className="hfis-settings-grid">
           <label>
-            <span>Default model</span>
+            <span>{t("settings.defaultModel")}</span>
             <input value={settings.defaultModel} onChange={(event) => onChange({ ...settings, defaultModel: event.target.value })} />
           </label>
           <label>
-            <span>Default size</span>
-            <select value={settings.defaultSize} onChange={(event) => onChange({ ...settings, defaultSize: event.target.value })}>
+            <span>{t("settings.defaultSize")}</span>
+            <AppSelect className="hfis-settings-select" value={settings.defaultSize} onChange={(event) => onChange({ ...settings, defaultSize: event.target.value })}>
               <option value="auto">auto</option>
               <option value="1024x1024">1024x1024</option>
               <option value="1536x1024">1536x1024</option>
               <option value="1024x1536">1024x1536</option>
-            </select>
+            </AppSelect>
           </label>
           <label>
-            <span>Gateway</span>
-            <select value={settings.gatewayMode} onChange={(event) => onChange({ ...settings, gatewayMode: event.target.value as StudioSettings["gatewayMode"] })}>
-              <option value="auto">auto</option>
-              <option value="enterprise">enterprise</option>
-              <option value="custom">custom endpoint</option>
-            </select>
+            <span>{t("settings.gateway")}</span>
+            <AppSelect className="hfis-settings-select" value={settings.gatewayMode} onChange={(event) => onChange({ ...settings, gatewayMode: event.target.value as StudioSettings["gatewayMode"] })}>
+              <option value="auto">{t("settings.gatewayAuto")}</option>
+              <option value="cloud">{t("settings.gatewayCloud")}</option>
+              <option value="custom">{t("settings.gatewayCustom")}</option>
+            </AppSelect>
           </label>
           <label>
-            <span>Custom base URL</span>
+            <span>{t("settings.customBaseUrl")}</span>
             <input
               value={settings.customBaseUrl}
-              placeholder="http://localhost:8000/v1"
+              placeholder={t("settings.localEndpointPlaceholder")}
               onChange={(event) => onChange({ ...settings, customBaseUrl: event.target.value })}
             />
           </label>
           <label>
-            <span>Custom API key</span>
+            <span>{t("settings.customApiKey")}</span>
             <input
               type="password"
               autoComplete="off"
               value={settings.customApiKey}
-              placeholder="Optional for local endpoints"
+              placeholder={t("settings.customApiKeyPlaceholder")}
               onChange={(event) => onChange({ ...settings, customApiKey: event.target.value })}
             />
           </label>
@@ -67,7 +70,7 @@ export function SettingsModal({ settings, onChange, onClose, onClearHistory }: S
               checked={settings.clearPromptAfterSubmit}
               onChange={(event) => onChange({ ...settings, clearPromptAfterSubmit: event.target.checked })}
             />
-            <span>Clear prompt after successful submit</span>
+            <span>{t("settings.clearPrompt")}</span>
           </label>
           <label className="hfis-check-row">
             <input
@@ -75,10 +78,10 @@ export function SettingsModal({ settings, onChange, onClose, onClearHistory }: S
               checked={settings.persistHistory}
               onChange={(event) => onChange({ ...settings, persistHistory: event.target.checked })}
             />
-            <span>Persist generated task history in this browser</span>
+            <span>{t("settings.persistHistory")}</span>
           </label>
           <button type="button" className="hfis-danger-button" onClick={onClearHistory}>
-            Clear local history
+            {t("settings.clearHistory")}
           </button>
         </div>
       </section>

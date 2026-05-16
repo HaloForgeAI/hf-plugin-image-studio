@@ -1,4 +1,4 @@
-import { enterpriseGateway } from "@haloforge/plugin-sdk";
+import { enterpriseGateway, invokePlugin } from "@haloforge/plugin-sdk";
 import type {
   EnterpriseGatewayApi,
   GatewayImageGenerationResult,
@@ -6,6 +6,7 @@ import type {
   PluginGatewayImageEditRequest,
   PluginGatewayImageRequest,
 } from "@haloforge/plugin-sdk";
+import type { ImageStudioTranslationKey } from "./i18n";
 import type { ImageStudioTask, ReferenceImage, StudioParams, StudioSettings } from "./types";
 
 declare global {
@@ -22,27 +23,27 @@ export function isUsingMockGateway(): boolean {
   return isDevGatewayEnabled() && getEnterpriseGateway() === null;
 }
 
-export function getGatewayState(settings: StudioSettings): { ready: boolean; label: string } {
+export function getGatewayState(settings: StudioSettings): { ready: boolean; labelKey: ImageStudioTranslationKey } {
   const enterpriseReady = hasEnterpriseGateway();
   const customReady = hasCustomGateway(settings);
   const mockReady = isUsingMockGateway();
 
-  if (settings.gatewayMode === "enterprise") {
+  if (settings.gatewayMode === "cloud") {
     return enterpriseReady
-      ? { ready: true, label: "Enterprise gateway" }
-      : { ready: mockReady, label: mockReady ? "Mock gateway" : "Enterprise unavailable" };
+      ? { ready: true, labelKey: "gateway.haloforgeCloud" }
+      : { ready: mockReady, labelKey: mockReady ? "gateway.mock" : "gateway.cloudUnavailable" };
   }
 
   if (settings.gatewayMode === "custom") {
     return customReady
-      ? { ready: true, label: "Custom gateway" }
-      : { ready: false, label: "Custom URL required" };
+      ? { ready: true, labelKey: "gateway.custom" }
+      : { ready: false, labelKey: "gateway.customRequired" };
   }
 
-  if (enterpriseReady) return { ready: true, label: "Enterprise gateway" };
-  if (customReady) return { ready: true, label: "Custom gateway" };
-  if (mockReady) return { ready: true, label: "Mock gateway" };
-  return { ready: false, label: "Gateway unavailable" };
+  if (enterpriseReady) return { ready: true, labelKey: "gateway.haloforgeCloud" };
+  if (customReady) return { ready: true, labelKey: "gateway.custom" };
+  if (mockReady) return { ready: true, labelKey: "gateway.mock" };
+  return { ready: false, labelKey: "gateway.unavailable" };
 }
 
 export async function generateImageTask(input: {
@@ -130,7 +131,7 @@ function getGateway(settings: StudioSettings): EnterpriseGatewayApi {
   const enterprise = getEnterpriseGateway();
   const custom = hasCustomGateway(settings) ? createCustomGateway(settings) : null;
 
-  if (settings.gatewayMode === "enterprise") return enterprise ?? createDevMockOrThrow();
+  if (settings.gatewayMode === "cloud") return enterprise ?? createDevMockOrThrow();
   if (settings.gatewayMode === "custom") {
     if (custom) return custom;
     throw new Error("Custom image gateway base URL is required.");
@@ -149,7 +150,7 @@ function getEnterpriseGateway(): EnterpriseGatewayApi | null {
 
 function createDevMockOrThrow(): EnterpriseGatewayApi {
   if (isDevGatewayEnabled()) return createMockGateway();
-  throw new Error("Image gateway is unavailable. Configure a custom endpoint or use HaloForge Enterprise.");
+  throw new Error("Image gateway is unavailable. Configure a custom endpoint or sign in to HaloForge Cloud.");
 }
 
 function isDevGatewayEnabled(): boolean {
@@ -164,99 +165,16 @@ function createCustomGateway(settings: StudioSettings): EnterpriseGatewayApi {
   const baseUrl = settings.customBaseUrl.trim();
   const apiKey = settings.customApiKey.trim();
   return {
-    generateImages: (request) => customJsonRequest(baseUrl, apiKey, "images/generations", request),
-    editImages: (request) => customEditRequest(baseUrl, apiKey, request),
+    generateImages: (request) => invokePlugin<GatewayImageGenerationResult>(
+      "image_studio_generate_images",
+      { baseUrl, apiKey, request },
+    ),
+    editImages: (request) => invokePlugin<GatewayImageGenerationResult>(
+      "image_studio_edit_images",
+      { baseUrl, apiKey, request },
+    ),
     listOutputs: async () => ({ outputs: [] }),
   };
-}
-
-async function customJsonRequest(
-  baseUrl: string,
-  apiKey: string,
-  path: string,
-  body: PluginGatewayImageRequest,
-): Promise<GatewayImageGenerationResult> {
-  const response = await fetch(resolveEndpoint(baseUrl, path), {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...authHeaders(apiKey),
-    },
-    body: JSON.stringify(body),
-  });
-  return parseGatewayResponse(response);
-}
-
-async function customEditRequest(
-  baseUrl: string,
-  apiKey: string,
-  request: PluginGatewayImageEditRequest,
-): Promise<GatewayImageGenerationResult> {
-  const form = new FormData();
-  appendFormValue(form, "model", request.model);
-  appendFormValue(form, "prompt", request.prompt);
-  appendFormValue(form, "size", request.size);
-  appendFormValue(form, "n", request.n);
-  appendFormValue(form, "quality", request.quality);
-  appendFormValue(form, "output_format", request.output_format);
-  appendFormValue(form, "output_compression", request.output_compression);
-  appendFormValue(form, "moderation", request.moderation);
-  appendFormValue(form, "response_format", request.response_format);
-  appendFormValue(form, "user", request.user);
-
-  for (const image of request.images) {
-    form.append(image.field_name ?? "image", b64ToBlob(image.b64_json, image.content_type), image.file_name);
-  }
-  if (request.mask) {
-    form.append(request.mask.field_name ?? "mask", b64ToBlob(request.mask.b64_json, request.mask.content_type), request.mask.file_name);
-  }
-
-  const response = await fetch(resolveEndpoint(baseUrl, "images/edits"), {
-    method: "POST",
-    headers: authHeaders(apiKey),
-    body: form,
-  });
-  return parseGatewayResponse(response);
-}
-
-async function parseGatewayResponse(response: Response): Promise<GatewayImageGenerationResult> {
-  const text = await response.text();
-  const json = text ? parseJson(text) : {};
-  if (!response.ok) {
-    throw new Error(json.error?.message || `Image gateway request failed (${response.status})`);
-  }
-  return json;
-}
-
-function parseJson(text: string): GatewayImageGenerationResult & { error?: { message?: string } } {
-  try {
-    return JSON.parse(text) as GatewayImageGenerationResult & { error?: { message?: string } };
-  } catch {
-    return { error: { message: text } };
-  }
-}
-
-function resolveEndpoint(baseUrl: string, path: string): string {
-  const trimmed = baseUrl.trim().replace(/\/+$/, "");
-  if (/\/images\/(?:generations|edits)$/.test(trimmed)) return trimmed;
-  return `${trimmed}/${path}`;
-}
-
-function authHeaders(apiKey: string): Record<string, string> {
-  return apiKey ? { authorization: `Bearer ${apiKey}` } : {};
-}
-
-function appendFormValue(form: FormData, key: string, value: string | number | undefined) {
-  if (value !== undefined && value !== "") form.append(key, String(value));
-}
-
-function b64ToBlob(b64Json: string, contentType = "image/png"): Blob {
-  const binary = atob(b64Json);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) {
-    bytes[index] = binary.charCodeAt(index);
-  }
-  return new Blob([bytes], { type: contentType });
 }
 
 function createMockGateway(): EnterpriseGatewayApi {

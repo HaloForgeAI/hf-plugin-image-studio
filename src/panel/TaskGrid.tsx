@@ -1,7 +1,9 @@
 import { CopyPlus, Download, Edit3, Image, Loader2, RefreshCw, Star, Trash2 } from "lucide-react";
+import type { ImageStudioT } from "../i18n";
 import type { ImageStudioTask } from "../types";
 
 interface TaskGridProps {
+  t: ImageStudioT;
   tasks: ImageStudioTask[];
   selectedTaskIds: string[];
   onReuseTask: (task: ImageStudioTask) => void;
@@ -14,6 +16,7 @@ interface TaskGridProps {
 }
 
 export function TaskGrid({
+  t,
   tasks,
   selectedTaskIds,
   onReuseTask,
@@ -29,7 +32,7 @@ export function TaskGrid({
       {tasks.length === 0 ? (
         <div className="hfis-empty">
           <Image size={30} />
-          <p>Generated images will appear here.</p>
+          <p>{t("task.empty")}</p>
         </div>
       ) : tasks.map((task) => {
         const selected = selectedTaskIds.includes(task.id);
@@ -41,7 +44,7 @@ export function TaskGrid({
               type="button"
               className="hfis-select-dot"
               onClick={() => onToggleSelection(task.id)}
-              title={selected ? "Remove from selection" : "Select task"}
+              title={selected ? t("task.unselect") : t("task.select")}
             >
               {selected ? "✓" : ""}
             </button>
@@ -54,13 +57,13 @@ export function TaskGrid({
               {task.status === "running" && (
                 <div className="hfis-running">
                   <Loader2 className="hfis-spin" size={32} />
-                  <span>Generating...</span>
+                  <span>{t("task.generating")}</span>
                 </div>
               )}
               {task.status === "error" && (
                 <div className="hfis-error-state">
                   <Image size={30} />
-                  <span>Failed</span>
+                  <span>{t("task.failed")}</span>
                 </div>
               )}
               {task.status === "done" && task.outputs[0] && (
@@ -71,51 +74,51 @@ export function TaskGrid({
               )}
               <div className="hfis-card-badges">
                 <span>{task.status === "done" && firstSize ? firstSize : duration}</span>
-                {task.references.length > 0 && <span>{task.references.length} ref</span>}
+                {task.references.length > 0 && <span>{t("task.referenceShort", { count: task.references.length })}</span>}
               </div>
             </button>
 
             <div className="hfis-card-body" onDoubleClick={() => onOpenTask(task)}>
-              <p>{task.prompt || "(empty prompt)"}</p>
+              <p>{task.prompt || t("task.emptyPrompt")}</p>
               {task.error && <small className="hfis-error">{task.error}</small>}
-              {task.revisedPrompt && <small className="hfis-muted">Revised: {task.revisedPrompt}</small>}
+              {task.revisedPrompt && <small className="hfis-muted">{t("task.revised", { prompt: task.revisedPrompt })}</small>}
               <div className="hfis-param-tags">
                 <span>{task.params.model}</span>
                 <span>{task.params.size}</span>
                 {task.params.quality !== "auto" && <span>{task.params.quality}</span>}
-                {task.params.count > 1 && <span>{task.params.count} outputs</span>}
-                {task.references.some((reference) => reference.maskDataUrl) && <span>mask</span>}
+                {task.params.count > 1 && <span>{t("task.outputs", { count: task.params.count })}</span>}
+                {task.references.some((reference) => reference.maskDataUrl) && <span>{t("task.mask")}</span>}
               </div>
               {task.assets.length > 0 && (
                 <div className="hfis-assets">
                   {task.assets.map((asset, index) => (
                     <a key={asset.id} href={asset.public_url} target="_blank" rel="noreferrer">
-                      Asset {index + 1}
+                      {t("task.asset", { index: index + 1 })}
                     </a>
                   ))}
                 </div>
               )}
               <div className="hfis-card-actions">
                 {task.status === "error" && (
-                  <button type="button" onClick={() => onReuseTask(task)} title="Retry task">
+                  <button type="button" onClick={() => onReuseTask(task)} title={t("task.retry")}>
                     <RefreshCw size={16} />
                   </button>
                 )}
-                <button type="button" onClick={() => onToggleFavorite(task.id)} title={task.favorite ? "Unfavorite" : "Favorite"}>
+                <button type="button" onClick={() => onToggleFavorite(task.id)} title={task.favorite ? t("task.unfavorite") : t("task.favorite")}>
                   <Star size={16} fill={task.favorite ? "currentColor" : "none"} />
                 </button>
-                <button type="button" onClick={() => onReuseTask(task)} title="Reuse config">
+                <button type="button" onClick={() => onReuseTask(task)} title={t("task.reuse")}>
                   <CopyPlus size={16} />
                 </button>
-                <button type="button" onClick={() => onEditTask(task)} disabled={task.outputs.length === 0} title="Use outputs as references">
+                <button type="button" onClick={() => onEditTask(task)} disabled={task.outputs.length === 0} title={t("task.edit")}>
                   <Edit3 size={16} />
                 </button>
                 {task.outputs[0] && (
-                  <a href={task.outputs[0]} download={`image-studio-${task.id}.png`} title="Download first output">
+                  <a href={task.outputs[0]} download={`image-studio-${task.id}.png`} title={t("task.download")}>
                     <Download size={16} />
                   </a>
                 )}
-                <button type="button" onClick={() => onDeleteTask(task.id)} title="Delete task">
+                <button type="button" onClick={() => onDeleteTask(task.id)} title={t("task.delete")}>
                   <Trash2 size={16} />
                 </button>
               </div>

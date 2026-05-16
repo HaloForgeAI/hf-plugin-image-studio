@@ -1,17 +1,19 @@
 import { Brush, Eraser, RotateCcw, Save, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import type { ImageStudioT } from "../i18n";
 import type { ReferenceImage } from "../types";
 
 type MaskTool = "brush" | "eraser";
 
 interface MaskEditorModalProps {
+  t: ImageStudioT;
   reference: ReferenceImage;
   onClose: () => void;
   onSave: (maskDataUrl: string) => void;
   onRemove: () => void;
 }
 
-export function MaskEditorModal({ reference, onClose, onSave, onRemove }: MaskEditorModalProps) {
+export function MaskEditorModal({ t, reference, onClose, onSave, onRemove }: MaskEditorModalProps) {
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
@@ -133,36 +135,36 @@ export function MaskEditorModal({ reference, onClose, onSave, onRemove }: MaskEd
       <section className="hfis-mask-editor">
         <header className="hfis-detail-header">
           <div>
-            <h2>Edit mask</h2>
+            <h2>{t("mask.title")}</h2>
             <p>{reference.name}</p>
           </div>
-          <button type="button" onClick={onClose} title="Close">
+          <button type="button" onClick={onClose} title={t("common.close")}>
             <X size={20} />
           </button>
         </header>
 
         <div className="hfis-mask-toolbar">
-          <button type="button" className={tool === "brush" ? "is-active" : ""} onClick={() => setTool("brush")} title="Paint editable area">
+          <button type="button" className={tool === "brush" ? "is-active" : ""} onClick={() => setTool("brush")} title={t("mask.paint")}>
             <Brush size={17} />
-            Brush
+            {t("mask.brush")}
           </button>
-          <button type="button" className={tool === "eraser" ? "is-active" : ""} onClick={() => setTool("eraser")} title="Erase mask">
+          <button type="button" className={tool === "eraser" ? "is-active" : ""} onClick={() => setTool("eraser")} title={t("mask.erase")}>
             <Eraser size={17} />
-            Eraser
+            {t("mask.eraser")}
           </button>
           <label>
-            <span>Size</span>
+            <span>{t("mask.size")}</span>
             <input type="range" min={8} max={180} value={brushSize} onChange={(event) => setBrushSize(Number(event.target.value))} />
           </label>
-          <button type="button" onClick={resetMask} title="Reset mask">
+          <button type="button" onClick={resetMask} title={t("mask.reset")}>
             <RotateCcw size={17} />
           </button>
-          <button type="button" onClick={onRemove} title="Remove mask">
+          <button type="button" onClick={onRemove} title={t("mask.remove")}>
             <Trash2 size={17} />
           </button>
-          <button type="button" className="hfis-mask-save" onClick={saveMask} disabled={!ready} title="Save mask">
+          <button type="button" className="hfis-mask-save" onClick={saveMask} disabled={!ready} title={t("mask.save")}>
             <Save size={17} />
-            Save
+            {t("mask.save")}
           </button>
         </div>
 

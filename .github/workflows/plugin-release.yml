@@ -37,6 +37,10 @@ jobs:
         with:
           node-version: 20
 
+      - name: Setup Rust target
+        shell: pwsh
+        run: rustup target add x86_64-pc-windows-msvc
+
       - name: Checkout plugin tooling
         shell: pwsh
         run: |

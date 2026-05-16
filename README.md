@@ -1,6 +1,6 @@
 # HaloForge Image Studio Plugin
 
-HaloForge Level 0 plugin for OpenAI-compatible image generation through the HaloForge enterprise gateway or a user-configured OpenAI-compatible endpoint.
+HaloForge Level 0 plugin for OpenAI-compatible image generation through the HaloForge Cloud managed gateway or a user-configured OpenAI-compatible endpoint.
 
 The UI/workflow is intentionally modeled after [CookSleep/gpt_image_playground](https://github.com/CookSleep/gpt_image_playground): top toolbar, search/status/favorite filters, generated-task cards, reference-image editing, mask-based image edits, IndexedDB-backed local history, and a bottom floating input bar.
 
@@ -17,13 +17,13 @@ The standalone Vite dev page runs in mock gateway mode when HaloForge has not in
 
 ## Host API
 
-Inside HaloForge, the plugin uses the public SDK gateway:
+Inside HaloForge, the plugin uses the public SDK managed gateway:
 
 - `enterpriseGateway().generateImages(...)`
 - `enterpriseGateway().editImages(...)`
 - `enterpriseGateway().listOutputs(...)`
 
-Enterprise base URLs and upstream API keys stay server-side. In enterprise mode the plugin only talks to `@haloforge/plugin-sdk` and requires `host_enterprise_gateway_access`.
+Cloud or enterprise base URLs and upstream API keys stay server-side. In managed gateway mode the plugin only talks to `@haloforge/plugin-sdk` and requires `host_enterprise_gateway_access`.
 
 Community installs can use the Settings dialog to set a custom OpenAI-compatible base URL such as `http://localhost:8000/v1`. That direct mode uses the plugin `network_http` permission and requires the target service to allow browser CORS.
 
@@ -38,7 +38,7 @@ cd /Users/loyio/gitRepo/HaloForge
 npm run hf -- plugin install local /Users/loyio/gitrepo/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.0.hfpkg --json
 ```
 
-The ordinary browser can validate the standalone plugin UI. Real enterprise image generation must be tested inside HaloForge/Tauri because a normal browser tab does not provide Tauri IPC or the HaloForge plugin host bridge.
+The ordinary browser can validate the standalone plugin UI. Real managed-gateway image generation must be tested inside HaloForge/Tauri because a normal browser tab does not provide Tauri IPC or the HaloForge plugin host bridge.
 
 ## Release
 

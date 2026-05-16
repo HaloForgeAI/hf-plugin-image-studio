@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useHostTheme } from "@haloforge/plugin-sdk";
 import { generateImageTask, getGatewayState } from "../hostBridge";
+import { useImageStudioT } from "../i18n";
 import {
   clearStoredTasks,
   createDefaultParams,
@@ -18,6 +20,8 @@ import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskGrid } from "./TaskGrid";
 
 export function ImageStudioPanel() {
+  const { theme } = useHostTheme();
+  const t = useImageStudioT();
   const [settings, setSettings] = useState<StudioSettings>(() => loadStoredSettings());
   const [prompt, setPrompt] = useState("");
   const [params, setParams] = useState<StudioParams>(() => createDefaultParams(loadStoredSettings()));
@@ -212,10 +216,18 @@ export function ImageStudioPanel() {
   }
 
   return (
-    <div className="hfis-root" onDrop={attachDroppedFiles} onDragOver={(event) => event.preventDefault()} onPaste={attachPastedFiles}>
+    <div
+      className="hfis-root"
+      data-hfis-theme={theme.type}
+      onDrop={attachDroppedFiles}
+      onDragOver={(event) => event.preventDefault()}
+      onPaste={attachPastedFiles}
+    >
       <StudioHeader
+        title={t("app.title")}
+        settingsTitle={t("settings.title")}
         gatewayReady={gatewayReady}
-        gatewayStatus={gatewayState.label}
+        gatewayStatus={t(gatewayState.labelKey)}
         taskCount={tasks.length}
         onSettingsClick={() => setSettingsOpen(true)}
       />
@@ -223,6 +235,7 @@ export function ImageStudioPanel() {
       <main className="hfis-main" data-drag-select-surface>
         <div className="hfis-shell">
           <SearchBar
+            t={t}
             filterFavorite={filterFavorite}
             filterStatus={filterStatus}
             searchQuery={searchQuery}
@@ -232,6 +245,7 @@ export function ImageStudioPanel() {
           />
 
           <TaskGrid
+            t={t}
             tasks={filteredTasks}
             selectedTaskIds={selectedTaskIds}
             onReuseTask={retryTask}
@@ -246,6 +260,7 @@ export function ImageStudioPanel() {
       </main>
 
       <StudioComposer
+        t={t}
         prompt={prompt}
         params={params}
         references={references}
@@ -267,6 +282,7 @@ export function ImageStudioPanel() {
       {detailTask && (
         <TaskDetailModal
           task={detailTask}
+          t={t}
           onClose={() => setDetailTaskId(null)}
           onReuse={(task) => {
             retryTask(task);
@@ -285,6 +301,7 @@ export function ImageStudioPanel() {
       {lightbox && (
         <Lightbox
           images={lightbox.images}
+          t={t}
           index={lightbox.index}
           onIndexChange={(index) => setLightbox({ ...lightbox, index })}
           onClose={() => setLightbox(null)}
@@ -294,6 +311,7 @@ export function ImageStudioPanel() {
       {settingsOpen && (
         <SettingsModal
           settings={settings}
+          t={t}
           onChange={updateSettings}
           onClose={() => setSettingsOpen(false)}
           onClearHistory={clearHistory}

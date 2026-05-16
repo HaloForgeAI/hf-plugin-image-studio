@@ -1,9 +1,12 @@
+import { AppSelect } from "@haloforge/plugin-sdk";
 import { Download, ImagePlus, Paintbrush, Star, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import type { ImageStudioT } from "../i18n";
 import type { ReferenceImage, StudioParams } from "../types";
 import { MaskEditorModal } from "./MaskEditorModal";
 
 interface StudioComposerProps {
+  t: ImageStudioT;
   prompt: string;
   params: StudioParams;
   references: ReferenceImage[];
@@ -23,6 +26,7 @@ interface StudioComposerProps {
 }
 
 export function StudioComposer({
+  t,
   prompt,
   params,
   references,
@@ -48,17 +52,17 @@ export function StudioComposer({
     <div className="hfis-input-dock" data-input-bar data-no-drag-select>
       {selectedCount > 0 && (
         <div className="hfis-selection-toolbar">
-          <button type="button" onClick={onClearSelection} title="Clear selection">
+          <button type="button" onClick={onClearSelection} title={t("composer.clearSelection")}>
             <X size={18} />
           </button>
-          <span>{selectedCount} selected</span>
-          <button type="button" onClick={onSelectVisible} title={selectedCount === totalVisibleCount ? "Clear visible" : "Select visible"}>
-            {selectedCount === totalVisibleCount ? "Clear visible" : "Select visible"}
+          <span>{t("composer.selected", { count: selectedCount })}</span>
+          <button type="button" onClick={onSelectVisible} title={selectedCount === totalVisibleCount ? t("composer.clearVisible") : t("composer.selectVisible")}>
+            {selectedCount === totalVisibleCount ? t("composer.clearVisible") : t("composer.selectVisible")}
           </button>
-          <button type="button" onClick={onFavoriteSelected} title="Favorite selected">
+          <button type="button" onClick={onFavoriteSelected} title={t("composer.favoriteSelected")}>
             <Star size={18} />
           </button>
-          <button type="button" onClick={onDeleteSelected} title="Delete selected">
+          <button type="button" onClick={onDeleteSelected} title={t("composer.deleteSelected")}>
             <Trash2 size={18} />
           </button>
         </div>
@@ -71,10 +75,10 @@ export function StudioComposer({
               <div key={reference.id} className={`hfis-reference-thumb ${reference.maskDataUrl ? "has-mask" : ""}`} title={reference.name}>
                 <img src={reference.dataUrl} alt="" />
                 <span>@{index + 1}</span>
-                <button type="button" className="hfis-reference-remove" onClick={() => onRemoveReference(reference.id)} title="Remove reference">
+                <button type="button" className="hfis-reference-remove" onClick={() => onRemoveReference(reference.id)} title={t("composer.removeReference")}>
                   <X size={12} />
                 </button>
-                <button type="button" className="hfis-reference-mask" onClick={() => setMaskReferenceId(reference.id)} title="Edit mask">
+                <button type="button" className="hfis-reference-mask" onClick={() => setMaskReferenceId(reference.id)} title={t("composer.editMask")}>
                   <Paintbrush size={12} />
                 </button>
               </div>
@@ -85,50 +89,50 @@ export function StudioComposer({
         <textarea
           value={prompt}
           onChange={(event) => onPromptChange(event.target.value)}
-          placeholder="Describe the image. Add references, then use @1, @2 in the prompt to call out specific images..."
+          placeholder={t("composer.placeholder")}
         />
 
         <div className="hfis-composer-bottom">
           <div className="hfis-params">
             <label>
-              <span>Model</span>
+              <span>{t("composer.model")}</span>
               <input value={params.model} onChange={(event) => onParamsChange({ ...params, model: event.target.value })} />
             </label>
             <label>
-              <span>Size</span>
-              <select value={params.size} onChange={(event) => onParamsChange({ ...params, size: event.target.value })}>
+              <span>{t("composer.size")}</span>
+              <AppSelect className="hfis-param-select" value={params.size} onChange={(event) => onParamsChange({ ...params, size: event.target.value })} placement="top">
                 <option value="auto">auto</option>
                 <option value="1024x1024">1024x1024</option>
                 <option value="1536x1024">1536x1024</option>
                 <option value="1024x1536">1024x1536</option>
-              </select>
+              </AppSelect>
             </label>
             <label>
-              <span>Quality</span>
-              <select value={params.quality} onChange={(event) => onParamsChange({ ...params, quality: event.target.value as StudioParams["quality"] })}>
+              <span>{t("composer.quality")}</span>
+              <AppSelect className="hfis-param-select" value={params.quality} onChange={(event) => onParamsChange({ ...params, quality: event.target.value as StudioParams["quality"] })} placement="top">
                 <option value="auto">auto</option>
                 <option value="low">low</option>
                 <option value="medium">medium</option>
                 <option value="high">high</option>
-              </select>
+              </AppSelect>
             </label>
             <label>
-              <span>Format</span>
-              <select value={params.format} onChange={(event) => onParamsChange({ ...params, format: event.target.value as StudioParams["format"] })}>
+              <span>{t("composer.format")}</span>
+              <AppSelect className="hfis-param-select" value={params.format} onChange={(event) => onParamsChange({ ...params, format: event.target.value as StudioParams["format"] })} placement="top">
                 <option value="png">png</option>
                 <option value="jpeg">jpeg</option>
                 <option value="webp">webp</option>
-              </select>
+              </AppSelect>
             </label>
             <label>
-              <span>Moderation</span>
-              <select value={params.moderation} onChange={(event) => onParamsChange({ ...params, moderation: event.target.value as StudioParams["moderation"] })}>
+              <span>{t("composer.moderation")}</span>
+              <AppSelect className="hfis-param-select" value={params.moderation} onChange={(event) => onParamsChange({ ...params, moderation: event.target.value as StudioParams["moderation"] })} placement="top">
                 <option value="auto">auto</option>
                 <option value="low">low</option>
-              </select>
+              </AppSelect>
             </label>
             <label>
-              <span>Count</span>
+              <span>{t("composer.count")}</span>
               <input
                 type="number"
                 min={1}
@@ -138,7 +142,7 @@ export function StudioComposer({
               />
             </label>
             <label>
-              <span>Compression</span>
+              <span>{t("composer.compression")}</span>
               <input
                 type="number"
                 min={0}
@@ -155,7 +159,7 @@ export function StudioComposer({
           </div>
 
           <div className="hfis-composer-actions">
-            <label className={`hfis-attach ${atImageLimit ? "is-disabled" : ""}`} title={atImageLimit ? "Reference image limit reached" : "Add reference images"}>
+            <label className={`hfis-attach ${atImageLimit ? "is-disabled" : ""}`} title={atImageLimit ? t("composer.referenceLimit") : t("composer.addReference")}>
               <ImagePlus size={20} />
               <input
                 type="file"
@@ -173,7 +177,7 @@ export function StudioComposer({
               className="hfis-submit"
               disabled={!prompt.trim() || !gatewayReady}
               onClick={onSubmit}
-              title={gatewayReady ? "Generate" : "Gateway unavailable"}
+              title={gatewayReady ? t("composer.generate") : t("composer.gatewayUnavailable")}
             >
               <Download size={20} />
             </button>
@@ -184,6 +188,7 @@ export function StudioComposer({
       {maskReference && (
         <MaskEditorModal
           reference={maskReference}
+          t={t}
           onClose={() => setMaskReferenceId(null)}
           onSave={(maskDataUrl) => {
             onUpdateReferenceMask(maskReference.id, maskDataUrl);

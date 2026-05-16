@@ -87,6 +87,7 @@ export function createDefaultParams(settings: StudioSettings): StudioParams {
 }
 
 function normalizeSettings(value: Partial<StudioSettings>): StudioSettings {
+  const rawGatewayMode = typeof value.gatewayMode === "string" ? String(value.gatewayMode) : "";
   return {
     defaultModel: typeof value.defaultModel === "string" && value.defaultModel.trim()
       ? value.defaultModel.trim()
@@ -94,8 +95,8 @@ function normalizeSettings(value: Partial<StudioSettings>): StudioSettings {
     defaultSize: typeof value.defaultSize === "string" && value.defaultSize.trim()
       ? value.defaultSize.trim()
       : DEFAULT_SETTINGS.defaultSize,
-    gatewayMode: value.gatewayMode === "enterprise" || value.gatewayMode === "custom"
-      ? value.gatewayMode
+    gatewayMode: rawGatewayMode === "custom" || rawGatewayMode === "cloud" || rawGatewayMode === "enterprise"
+      ? rawGatewayMode === "enterprise" ? "cloud" : rawGatewayMode
       : DEFAULT_SETTINGS.gatewayMode,
     customBaseUrl: typeof value.customBaseUrl === "string" ? value.customBaseUrl.trim() : DEFAULT_SETTINGS.customBaseUrl,
     customApiKey: typeof value.customApiKey === "string" ? value.customApiKey : DEFAULT_SETTINGS.customApiKey,
