@@ -1,5 +1,5 @@
 import { Brush, Eraser, RotateCcw, Save, Trash2, X } from "lucide-react";
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import type { ImageStudioT } from "../i18n";
 import type { ReferenceImage } from "../types";
 
@@ -16,10 +16,17 @@ interface MaskEditorModalProps {
 export function MaskEditorModal({ t, reference, onClose, onSave, onRemove }: MaskEditorModalProps) {
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const [tool, setTool] = useState<MaskTool>("brush");
   const [brushSize, setBrushSize] = useState(56);
+  const [cursor, setCursor] = useState<{ x: number; y: number; size: number; visible: boolean }>({
+    x: 0,
+    y: 0,
+    size: 0,
+    visible: false,
+  });
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -88,6 +95,7 @@ export function MaskEditorModal({ t, reference, onClose, onSave, onRemove }: Mas
   function beginDraw(event: ReactPointerEvent<HTMLCanvasElement>) {
     if (!ready) return;
     event.currentTarget.setPointerCapture(event.pointerId);
+    updateCursor(event);
     drawingRef.current = true;
     const point = getCanvasPoint(event.currentTarget, event);
     lastPointRef.current = point;
@@ -95,6 +103,7 @@ export function MaskEditorModal({ t, reference, onClose, onSave, onRemove }: Mas
   }
 
   function continueDraw(event: ReactPointerEvent<HTMLCanvasElement>) {
+    updateCursor(event);
     if (!drawingRef.current) return;
     const point = getCanvasPoint(event.currentTarget, event);
     drawStroke(lastPointRef.current ?? point, point);
@@ -104,6 +113,21 @@ export function MaskEditorModal({ t, reference, onClose, onSave, onRemove }: Mas
   function endDraw() {
     drawingRef.current = false;
     lastPointRef.current = null;
+  }
+
+  function updateCursor(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const stage = stageRef.current;
+    const canvas = event.currentTarget;
+    if (!stage || !canvas) return;
+    const stageRect = stage.getBoundingClientRect();
+    const canvasRect = canvas.getBoundingClientRect();
+    const displayedBrushSize = (brushSize / Math.max(1, canvas.width)) * canvasRect.width;
+    setCursor({
+      x: event.clientX - stageRect.left + stage.scrollLeft,
+      y: event.clientY - stageRect.top + stage.scrollTop,
+      size: Math.max(8, displayedBrushSize),
+      visible: true,
+    });
   }
 
   function drawStroke(from: { x: number; y: number }, to: { x: number; y: number }) {
@@ -147,14 +171,19 @@ export function MaskEditorModal({ t, reference, onClose, onSave, onRemove }: Mas
           <button type="button" className={tool === "brush" ? "is-active" : ""} onClick={() => setTool("brush")} title={t("mask.paint")}>
             <Brush size={17} />
             {t("mask.brush")}
+            <span className="hfis-mask-tool-size" style={{ "--hfis-tool-size": `${toolPreviewSize(brushSize)}px` } as CSSProperties} />
+            <small>{brushSize}px</small>
           </button>
           <button type="button" className={tool === "eraser" ? "is-active" : ""} onClick={() => setTool("eraser")} title={t("mask.erase")}>
             <Eraser size={17} />
             {t("mask.eraser")}
+            <span className="hfis-mask-tool-size" style={{ "--hfis-tool-size": `${toolPreviewSize(brushSize)}px` } as CSSProperties} />
+            <small>{brushSize}px</small>
           </button>
           <label>
             <span>{t("mask.size")}</span>
             <input type="range" min={8} max={180} value={brushSize} onChange={(event) => setBrushSize(Number(event.target.value))} />
+            <output>{brushSize}px</output>
           </label>
           <button type="button" onClick={resetMask} title={t("mask.reset")}>
             <RotateCcw size={17} />
@@ -168,22 +197,46 @@ export function MaskEditorModal({ t, reference, onClose, onSave, onRemove }: Mas
           </button>
         </div>
 
-        <div className="hfis-mask-stage">
+        <div ref={stageRef} className="hfis-mask-stage">
           {error && <p className="hfis-detail-error">{error}</p>}
           <img className="hfis-mask-image" src={reference.dataUrl} alt="" />
           <canvas ref={maskCanvasRef} hidden />
           <canvas
             ref={overlayCanvasRef}
+            data-tool={tool}
+            onPointerEnter={updateCursor}
             onPointerDown={beginDraw}
             onPointerMove={continueDraw}
             onPointerUp={endDraw}
             onPointerCancel={endDraw}
-            onPointerLeave={endDraw}
+            onPointerLeave={() => {
+              endDraw();
+              setCursor((value) => ({ ...value, visible: false }));
+            }}
           />
+          {cursor.visible && (
+            <div
+              className={`hfis-mask-cursor is-${tool}`}
+              style={{
+                left: cursor.x,
+                top: cursor.y,
+                width: cursor.size,
+                height: cursor.size,
+                marginLeft: -cursor.size / 2,
+                marginTop: -cursor.size / 2,
+              }}
+            >
+              {tool === "brush" ? <Brush size={12} /> : <Eraser size={12} />}
+            </div>
+          )}
         </div>
       </section>
     </div>
   );
+}
+
+function toolPreviewSize(value: number): number {
+  return Math.max(8, Math.min(22, Math.round(value / 7)));
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {

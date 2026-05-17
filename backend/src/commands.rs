@@ -315,7 +315,7 @@ fn parse_args<T: for<'de> Deserialize<'de>>(args: Value) -> Result<T, PluginErro
 fn gateway_client() -> Result<Client, PluginError> {
     Client::builder()
         .timeout(Duration::from_secs(600))
-        .user_agent("HaloForge Image Studio/0.1.6")
+        .user_agent("HaloForge Image Studio/0.1.7")
         .build()
         .map_err(network_error)
 }

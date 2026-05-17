@@ -1,11 +1,11 @@
-import { AppTooltip } from "@haloforge/plugin-sdk";
+import { AppSelect, AppTooltip } from "@haloforge/plugin-sdk";
 import { ImagePlus, Paintbrush, Plus, SendHorizontal, SlidersHorizontal, Star, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { ImageStudioT } from "../i18n";
 import type { ReferenceImage, StudioParams } from "../types";
 import { IMAGE_MODEL_OPTIONS } from "../modelOptions";
-import { ClosingAppSelect as AppSelect } from "./ClosingAppSelect";
 import { MaskEditorModal } from "./MaskEditorModal";
+import { NumberStepper } from "./NumberStepper";
 
 interface StudioComposerProps {
   t: ImageStudioT;
@@ -192,12 +192,13 @@ export function StudioComposer({
                   </label>
                   <label>
                     <span>{t("composer.count")}</span>
-                    <input
-                      type="number"
+                    <NumberStepper
                       min={1}
                       max={4}
                       value={params.count}
-                      onChange={(event) => onParamsChange({ ...params, count: clampCount(Number(event.target.value)) })}
+                      decrementLabel={t("common.decrease")}
+                      incrementLabel={t("common.increase")}
+                      onChange={(count) => onParamsChange({ ...params, count: clampCount(count) })}
                     />
                   </label>
                   <label>
@@ -205,17 +206,20 @@ export function StudioComposer({
                     {params.format === "png" ? (
                       <em className="hfis-param-note">{t("composer.compressionPngDisabled")}</em>
                     ) : (
-                      <input
-                        type="number"
-                        min={0}
-                        max={100}
-                        value={params.compression ?? ""}
-                        placeholder="auto"
+                      <AppSelect
+                        className="hfis-param-select"
+                        value={params.compression == null ? "auto" : String(params.compression)}
                         onChange={(event) => onParamsChange({
                           ...params,
-                          compression: event.target.value.trim() === "" ? null : clampPercent(Number(event.target.value)),
+                          compression: event.target.value === "auto" ? null : clampPercent(Number(event.target.value)),
                         })}
-                      />
+                        placement="top"
+                      >
+                        <option value="auto">auto</option>
+                        {compressionOptions(params.compression).map((value) => (
+                          <option key={value} value={String(value)}>{value}%</option>
+                        ))}
+                      </AppSelect>
                     )}
                   </label>
                 </div>
@@ -263,4 +267,10 @@ function clampCount(value: number): number {
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) return 100;
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function compressionOptions(current: number | null): number[] {
+  const values = [30, 50, 70, 90, 100];
+  if (current != null && !values.includes(current)) values.unshift(current);
+  return values;
 }

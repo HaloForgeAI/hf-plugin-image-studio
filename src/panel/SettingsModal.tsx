@@ -1,18 +1,19 @@
+import { AppSelect } from "@haloforge/plugin-sdk";
 import { X } from "lucide-react";
 import type { ImageStudioT } from "../i18n";
 import type { StudioSettings } from "../types";
 import { IMAGE_MODEL_OPTIONS } from "../modelOptions";
-import { ClosingAppSelect as AppSelect } from "./ClosingAppSelect";
 
 interface SettingsModalProps {
   t: ImageStudioT;
   settings: StudioSettings;
+  savedAt: number;
   onChange: (settings: StudioSettings) => void;
   onClose: () => void;
   onClearHistory: () => void;
 }
 
-export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }: SettingsModalProps) {
+export function SettingsModal({ t, settings, savedAt, onChange, onClose, onClearHistory }: SettingsModalProps) {
   return (
     <div className="hfis-modal-backdrop" role="dialog" aria-modal="true">
       <section className="hfis-settings">
@@ -21,6 +22,7 @@ export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }
             <h2>{t("settings.title")}</h2>
             <p>{t("settings.subtitle")}</p>
           </div>
+          <span className="hfis-settings-save-status">{t("settings.saved", { time: formatSavedTime(savedAt) })}</span>
           <button type="button" onClick={onClose} title={t("common.close")}>
             <X size={20} />
           </button>
@@ -102,13 +104,17 @@ export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }
           </label>
           <label>
             <span>{t("settings.galleryColumns")}</span>
-            <input
-              type="number"
-              min={2}
-              max={8}
-              value={settings.galleryColumns}
-              onChange={(event) => onChange({ ...settings, galleryColumns: clampGalleryColumns(Number(event.target.value)) })}
-            />
+            <div className="hfis-settings-range">
+              <input
+                type="range"
+                min={2}
+                max={8}
+                step={1}
+                value={settings.galleryColumns}
+                onChange={(event) => onChange({ ...settings, galleryColumns: clampGalleryColumns(Number(event.target.value)) })}
+              />
+              <output>{settings.galleryColumns}</output>
+            </div>
           </label>
           <label className="hfis-check-row">
             <input
@@ -125,6 +131,10 @@ export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }
       </section>
     </div>
   );
+}
+
+function formatSavedTime(value: number): string {
+  return new Date(value).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 function clampGalleryColumns(value: number) {

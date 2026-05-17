@@ -35,6 +35,7 @@ export function ImageStudioPanel() {
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsSavedAt, setSettingsSavedAt] = useState(() => Date.now());
   const gatewayState = getGatewayState(settings);
   const gatewayReady = gatewayState.ready;
 
@@ -67,6 +68,7 @@ export function ImageStudioPanel() {
 
   useEffect(() => {
     saveStoredSettings(settings);
+    setSettingsSavedAt(Date.now());
   }, [settings]);
 
   useEffect(() => {
@@ -331,6 +333,7 @@ export function ImageStudioPanel() {
       {settingsOpen && (
         <SettingsModal
           settings={settings}
+          savedAt={settingsSavedAt}
           t={t}
           onChange={updateSettings}
           onClose={() => setSettingsOpen(false)}

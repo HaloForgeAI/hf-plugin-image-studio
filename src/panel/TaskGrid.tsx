@@ -1,5 +1,5 @@
 import { AppTooltip } from "@haloforge/plugin-sdk";
-import { CopyPlus, Download, Edit3, Image, Loader2, RefreshCw, Star, Trash2 } from "lucide-react";
+import { CopyPlus, Download, Edit3, Image, RefreshCw, Star, Trash2 } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { saveGeneratedImage } from "../download";
 import type { ImageStudioT } from "../i18n";
@@ -71,11 +71,10 @@ export function TaskGrid({
                 <div className="hfis-running">
                   <span className="hfis-running-clock">{duration}</span>
                   <div className="hfis-generation-stage" aria-hidden="true">
-                    <Loader2 className="hfis-spin" size={28} />
                     <span className="hfis-generation-spark" />
                     <span className="hfis-generation-spark" />
                     <span className="hfis-generation-spark" />
-                    <div className="hfis-generation-progress">
+                    <div className="hfis-generation-progress" style={{ "--hfis-progress": `${fakeProgress(task.createdAt, now)}%` } as CSSProperties}>
                       <span />
                     </div>
                   </div>
@@ -171,6 +170,12 @@ function formatDuration(start: number, end: number): string {
   const minutes = String(Math.floor(seconds / 60)).padStart(2, "0");
   const remainder = String(seconds % 60).padStart(2, "0");
   return `${minutes}:${remainder}`;
+}
+
+function fakeProgress(start: number, now: number): number {
+  const seconds = Math.max(0, (now - start) / 1000);
+  const eased = 1 - Math.exp(-seconds / 32);
+  return Math.min(94, Math.max(9, Math.round(9 + eased * 85)));
 }
 
 function ActionTooltip({ children, label }: { children: ReactNode; label: string }) {
