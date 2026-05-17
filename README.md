@@ -2,7 +2,7 @@
 
 HaloForge Level 0 plugin for OpenAI-compatible image generation through the HaloForge Cloud managed gateway or a user-configured OpenAI-compatible endpoint.
 
-The UI/workflow is intentionally modeled after [CookSleep/gpt_image_playground](https://github.com/CookSleep/gpt_image_playground): top toolbar, search/status/favorite filters, generated-task cards, reference-image editing, mask-based image edits, IndexedDB-backed local history, and a bottom floating input bar.
+The UI/workflow is intentionally modeled after [CookSleep/gpt_image_playground](https://github.com/CookSleep/gpt_image_playground): top toolbar, search/status/favorite filters, generated-task cards, reference-image editing, mask-based image edits, IndexedDB-backed local history, and a bottom floating input bar. The request layer mirrors the important backend behavior too: Images API and Responses API modes, prompt rewrite guard handling, Codex CLI compatibility, optional base64 responses, and custom endpoint normalization.
 
 ## Development
 
@@ -25,7 +25,14 @@ Inside HaloForge, the plugin uses the public SDK managed gateway:
 
 Cloud or enterprise base URLs and upstream API keys stay server-side. In managed gateway mode the plugin only talks to `@haloforge/plugin-sdk` and requires `host_enterprise_gateway_access`.
 
-Community installs can use the Settings dialog to set a custom OpenAI-compatible base URL such as `http://localhost:8000/v1`. That custom endpoint path runs through the Rust backend with the plugin `network_http` permission, so it can avoid browser CORS issues and keep the API key out of React component state.
+Community installs can use the Settings dialog to set a custom OpenAI-compatible base URL such as `http://localhost:8000/v1`. That custom endpoint path runs through the Rust backend with the plugin `network_http` permission, so it can avoid browser CORS issues and keep the API key out of React component state. Auto gateway mode prefers a configured custom endpoint before falling back to HaloForge Cloud.
+
+Image Studio supports two custom endpoint request modes:
+
+- Images API sends generation requests to `/v1/images/generations` and edit requests to `/v1/images/edits`.
+- Responses API sends both generation and edit-style reference-image requests to `/v1/responses` using the `image_generation` tool and normalizes `image_generation_call` results back to the standard `data[]` image shape.
+
+Codex CLI compatibility can be enabled from Settings. It omits the `quality` field for providers that reject it, applies the prompt rewrite guard, and splits multi-image requests into concurrent single-image calls.
 
 ## Generation Logs
 
@@ -33,7 +40,7 @@ Image Studio logs generation diagnostics into HaloForge's application log at `~/
 
 - Frontend gateway calls log `Image Studio generation started`, `Image Studio generation succeeded`, and `Image Studio generation failed` through `createPluginLogger()`.
 - Custom endpoint backend calls log `image request started`, `image request succeeded`, and `image request failed` through `ctx.log(...)`.
-- Logged fields include task ID, gateway type, operation, model, size, count, quality, format, reference count, status, elapsed time, output count, asset count, and a short error summary.
+- Logged fields include task ID, gateway type, gateway mode, API mode, custom base URL, resolved endpoint, operation, model, size, count, quality, format, reference count, mask presence, status, provider request ID, elapsed time, output count, asset count, and a response preview on provider errors.
 - Logs intentionally do not include API keys, bearer tokens, prompt text, raw image data, or base64 payloads.
 
 For a live verification run:
@@ -53,7 +60,7 @@ npm run plugin:check
 npm run plugin:pack
 
 cd /path/to/HaloForge
-npm run hf -- plugin install local /path/to/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.3.hfpkg --json
+npm run hf -- plugin install local /path/to/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.4.hfpkg --json
 npm run hf -- plugin list --json
 ```
 
@@ -64,7 +71,7 @@ The ordinary browser can validate the standalone plugin UI. Real managed-gateway
 ```bash
 gh workflow run "Plugin Release" \
   --repo HaloForgeAI/hf-plugin-image-studio \
-  -f release_tag=v0.1.3 \
-  -f release_name="Image Studio v0.1.3" \
+  -f release_tag=v0.1.4 \
+  -f release_name="Image Studio v0.1.4" \
   -f source=official
 ```

@@ -9,6 +9,8 @@ import type {
 import type { ImageStudioTranslationKey } from "./i18n";
 import type { ImageStudioTask, ReferenceImage, StudioParams, StudioSettings } from "./types";
 
+const PROMPT_REWRITE_GUARD_PREFIX = "Use the following text as the complete prompt. Do not rewrite it:";
+
 let logger: ReturnType<typeof createPluginLogger> | null = null;
 
 function imageStudioLogger(): ReturnType<typeof createPluginLogger> {
@@ -47,8 +49,8 @@ export function getGatewayState(settings: StudioSettings): { ready: boolean; lab
       : { ready: false, labelKey: "gateway.customRequired" };
   }
 
-  if (enterpriseReady) return { ready: true, labelKey: "gateway.haloforgeCloud" };
   if (customReady) return { ready: true, labelKey: "gateway.custom" };
+  if (enterpriseReady) return { ready: true, labelKey: "gateway.haloforgeCloud" };
   if (mockReady) return { ready: true, labelKey: "gateway.mock" };
   return { ready: false, labelKey: "gateway.unavailable" };
 }
@@ -60,16 +62,20 @@ export async function generateImageTask(input: {
   references: ReferenceImage[];
   settings: StudioSettings;
 }): Promise<Pick<ImageStudioTask, "outputs" | "assets" | "revisedPrompt">> {
+  const shouldGuardPrompt = input.settings.codexCli || input.settings.apiMode === "responses";
+  const prompt = shouldGuardPrompt
+    ? `${PROMPT_REWRITE_GUARD_PREFIX}\n${input.prompt}`
+    : input.prompt;
   const baseRequest = {
     model: input.params.model,
-    prompt: input.prompt,
+    prompt,
     size: input.params.size,
-    quality: input.params.quality,
     n: input.params.count,
     output_format: input.params.format,
     moderation: input.params.moderation,
     ...(input.params.compression == null ? {} : { output_compression: input.params.compression }),
-    response_format: "b64_json" as const,
+    ...(input.settings.codexCli ? {} : { quality: input.params.quality }),
+    ...(input.settings.responseFormatB64Json ? { response_format: "b64_json" as const } : {}),
   };
 
   const maskedReference = input.references.find((reference) => reference.maskDataUrl);
@@ -84,6 +90,8 @@ export async function generateImageTask(input: {
     await imageStudioLogger().error("Image Studio gateway unavailable", {
       taskId: input.taskId ?? null,
       gatewayMode: input.settings.gatewayMode,
+      apiMode: input.settings.apiMode,
+      customBaseUrl: input.settings.customBaseUrl || null,
       promptChars: input.prompt.length,
       referenceCount: orderedReferences.length,
       elapsedMs: Math.round(performance.now() - startedAt),
@@ -96,6 +104,12 @@ export async function generateImageTask(input: {
   const diagnosticDetails = {
     taskId: input.taskId ?? null,
     gateway: resolvedGateway.kind,
+    gatewayMode: input.settings.gatewayMode,
+    apiMode: input.settings.apiMode,
+    customBaseUrl: resolvedGateway.baseUrl ?? null,
+    resolvedEndpoint: resolvedGateway.endpoint ?? null,
+    codexCli: input.settings.codexCli,
+    responseFormatB64Json: input.settings.responseFormatB64Json,
     operation,
     model: input.params.model,
     size: input.params.size,
@@ -111,27 +125,16 @@ export async function generateImageTask(input: {
   await imageStudioLogger().info("Image Studio generation started", diagnosticDetails);
 
   try {
-    const response = operation === "edit"
-      ? await resolvedGateway.gateway.editImages({
-        ...baseRequest,
-        images: orderedReferences.map((reference) => ({
-          field_name: "image",
-          file_name: reference.name,
-          content_type: reference.contentType,
-          b64_json: stripDataUrl(reference.dataUrl),
-        })),
-        ...(maskedReference?.maskDataUrl
-          ? {
-            mask: {
-              field_name: "mask",
-              file_name: `${fileNameStem(maskedReference.name)}-mask.png`,
-              content_type: "image/png",
-              b64_json: stripDataUrl(maskedReference.maskDataUrl),
-            },
-          }
-          : {}),
-      })
-      : await resolvedGateway.gateway.generateImages(baseRequest);
+    const response = await runGatewayRequest({
+      gateway: resolvedGateway.gateway,
+      settings: input.settings,
+      operation,
+      baseRequest,
+      orderedReferences,
+      maskedReference,
+      params: input.params,
+      prompt,
+    });
 
     const outputs = normalizeImages(response, input.params.format);
     const assets = response.hf_output_assets ?? [];
@@ -158,12 +161,20 @@ export async function generateImageTask(input: {
 }
 
 function normalizeImages(response: GatewayImageGenerationResult, format: StudioParams["format"]): string[] {
-  return (response.data ?? [])
+  const outputs = response.data ?? [];
+  if (!outputs.length) {
+    throw new Error(`Image gateway response did not contain data[] outputs. Raw response keys: ${Object.keys(response).join(", ") || "(none)"}`);
+  }
+  const images = outputs
     .map((item) => {
       if (item.b64_json) return `data:${imageMime(format)};base64,${item.b64_json}`;
       return item.url ?? null;
     })
     .filter((value): value is string => Boolean(value));
+  if (!images.length) {
+    throw new Error("Image gateway response did not contain recognizable b64_json or url image outputs.");
+  }
+  return images;
 }
 
 function imageMime(format: StudioParams["format"]): string {
@@ -184,23 +195,122 @@ function fileNameStem(fileName: string): string {
   return dot > 0 ? trimmed.slice(0, dot) : trimmed || "image";
 }
 
-type GatewayKind = "cloud" | "custom" | "mock";
+async function runGatewayRequest(input: {
+  gateway: EnterpriseGatewayApi;
+  settings: StudioSettings;
+  operation: "generation" | "edit";
+  baseRequest: PluginGatewayImageRequest;
+  orderedReferences: ReferenceImage[];
+  maskedReference?: ReferenceImage;
+  params: StudioParams;
+  prompt: string;
+}): Promise<GatewayImageGenerationResult> {
+  if (input.settings.apiMode === "responses") {
+    const responsesRequest: PluginGatewayImageRequest & Record<string, unknown> = {
+      model: input.params.model,
+      prompt: input.prompt,
+      response_format: "b64_json",
+      hf_api_mode: "responses",
+      hf_responses_input_images: input.orderedReferences.map((reference) => reference.dataUrl),
+      hf_responses_mask: input.maskedReference?.maskDataUrl ?? null,
+      hf_responses_tool: {
+        type: "image_generation",
+        action: input.operation === "edit" ? "edit" : "generate",
+        size: input.params.size,
+        output_format: input.params.format,
+        ...(input.settings.codexCli ? {} : { quality: input.params.quality }),
+        ...(input.params.compression == null ? {} : { output_compression: input.params.compression }),
+        ...(input.maskedReference?.maskDataUrl
+          ? { input_image_mask: { image_url: input.maskedReference.maskDataUrl } }
+          : {}),
+      },
+    };
+    const requests = Array.from({ length: clampCount(input.params.count) }, () => responsesRequest);
+    const responses = await Promise.all(requests.map((request) => input.gateway.generateImages(request)));
+    return mergeGatewayResponses(responses);
+  }
 
-function getGateway(settings: StudioSettings): { gateway: EnterpriseGatewayApi; kind: GatewayKind } {
+  if (input.settings.codexCli && input.params.count > 1) {
+    const requests = Array.from({ length: input.params.count }, () => ({
+      ...input.baseRequest,
+      n: 1,
+    }));
+    const responses = await Promise.all(requests.map((request) => runImagesApiRequest(input, request)));
+    return mergeGatewayResponses(responses);
+  }
+
+  return runImagesApiRequest(input, input.baseRequest);
+}
+
+function runImagesApiRequest(
+  input: {
+    gateway: EnterpriseGatewayApi;
+    operation: "generation" | "edit";
+    orderedReferences: ReferenceImage[];
+    maskedReference?: ReferenceImage;
+  },
+  request: PluginGatewayImageRequest,
+): Promise<GatewayImageGenerationResult> {
+  if (input.operation === "edit") {
+    return input.gateway.editImages({
+      ...request,
+      images: input.orderedReferences.map((reference) => ({
+        field_name: "image[]",
+        file_name: reference.name,
+        content_type: reference.contentType,
+        b64_json: stripDataUrl(reference.dataUrl),
+      })),
+      ...(input.maskedReference?.maskDataUrl
+        ? {
+          mask: {
+            field_name: "mask",
+            file_name: `${fileNameStem(input.maskedReference.name)}-mask.png`,
+            content_type: "image/png",
+            b64_json: stripDataUrl(input.maskedReference.maskDataUrl),
+          },
+        }
+        : {}),
+    });
+  }
+
+  return input.gateway.generateImages(request);
+}
+
+function mergeGatewayResponses(responses: GatewayImageGenerationResult[]): GatewayImageGenerationResult {
+  return {
+    created: responses[0]?.created,
+    data: responses.flatMap((response) => response.data ?? []),
+    hf_output_assets: responses.flatMap((response) => response.hf_output_assets ?? []),
+  };
+}
+
+type GatewayKind = "cloud" | "custom" | "mock";
+type ResolvedGateway = {
+  gateway: EnterpriseGatewayApi;
+  kind: GatewayKind;
+  baseUrl?: string;
+  endpoint?: string;
+};
+
+function getGateway(settings: StudioSettings): ResolvedGateway {
   const enterprise = getEnterpriseGateway();
   const custom = hasCustomGateway(settings) ? createCustomGateway(settings) : null;
+  const customBaseUrl = custom ? normalizeBaseUrl(settings.customBaseUrl) : undefined;
+  const customEndpoint = customBaseUrl
+    ? resolveEndpoint(customBaseUrl, settings.apiMode === "responses" ? "responses" : "images/generations")
+    : undefined;
 
   if (settings.gatewayMode === "cloud") {
     if (enterprise) return { gateway: enterprise, kind: "cloud" };
     return { gateway: createDevMockOrThrow(), kind: "mock" };
   }
   if (settings.gatewayMode === "custom") {
-    if (custom) return { gateway: custom, kind: "custom" };
+    if (custom) return { gateway: custom, kind: "custom", baseUrl: customBaseUrl, endpoint: customEndpoint };
     throw new Error("Custom image gateway base URL is required.");
   }
 
-  if (enterprise) return { gateway: enterprise, kind: "cloud" };
-  if (custom) return { gateway: custom, kind: "custom" };
+  if (custom) return { gateway: custom, kind: "custom", baseUrl: customBaseUrl, endpoint: customEndpoint };
+  if (enterprise) return { gateway: enterprise, kind: "cloud", endpoint: "/v1/gateway/images/generations" };
   return { gateway: createDevMockOrThrow(), kind: "mock" };
 }
 
@@ -225,17 +335,48 @@ function hasCustomGateway(settings: StudioSettings): boolean {
   return Boolean(settings.customBaseUrl.trim());
 }
 
+function normalizeBaseUrl(baseUrl: string): string {
+  const trimmed = baseUrl.trim();
+  if (!trimmed) return "";
+  const input = /^[a-zA-Z][a-zA-Z\d+.-]*:\/\//.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+
+  try {
+    const url = new URL(input);
+    const endpointPattern = /\/(?:v1\/)?(?:images\/(?:generations|edits)|responses)\/?$/i;
+    url.pathname = url.pathname.replace(endpointPattern, "");
+    const pathSegments = url.pathname.split("/").filter(Boolean);
+    const v1Index = pathSegments.indexOf("v1");
+    const normalizedSegments = v1Index >= 0
+      ? pathSegments.slice(0, v1Index + 1)
+      : pathSegments.length
+        ? [...pathSegments, "v1"]
+        : ["v1"];
+    return `${url.origin}/${normalizedSegments.join("/")}`.replace(/\/+$/, "");
+  } catch {
+    return trimmed.replace(/\/+$/, "");
+  }
+}
+
+function resolveEndpoint(baseUrl: string, endpoint: string): string {
+  const trimmed = normalizeBaseUrl(baseUrl).replace(/\/+$/, "");
+  const cleanEndpoint = endpoint.replace(/^\/+/, "");
+  if (trimmed.endsWith(cleanEndpoint)) return trimmed;
+  return `${trimmed}/${cleanEndpoint}`;
+}
+
 function createCustomGateway(settings: StudioSettings): EnterpriseGatewayApi {
-  const baseUrl = settings.customBaseUrl.trim();
+  const baseUrl = normalizeBaseUrl(settings.customBaseUrl);
   const apiKey = settings.customApiKey.trim();
   return {
     generateImages: (request) => invokePlugin<GatewayImageGenerationResult>(
       "image_studio_generate_images",
-      { baseUrl, apiKey, request },
+      { baseUrl, apiKey, apiMode: settings.apiMode, request },
     ),
     editImages: (request) => invokePlugin<GatewayImageGenerationResult>(
       "image_studio_edit_images",
-      { baseUrl, apiKey, request },
+      { baseUrl, apiKey, apiMode: settings.apiMode, request },
     ),
     listOutputs: async () => ({ outputs: [] }),
   };

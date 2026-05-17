@@ -52,6 +52,13 @@ export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }
             </AppSelect>
           </label>
           <label>
+            <span>{t("settings.apiMode")}</span>
+            <AppSelect className="hfis-settings-select" value={settings.apiMode} onChange={(event) => onChange({ ...settings, apiMode: event.target.value as StudioSettings["apiMode"] })}>
+              <option value="images">{t("settings.apiModeImages")}</option>
+              <option value="responses">{t("settings.apiModeResponses")}</option>
+            </AppSelect>
+          </label>
+          <label>
             <span>{t("settings.customBaseUrl")}</span>
             <input
               value={settings.customBaseUrl}
@@ -68,6 +75,22 @@ export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }
               placeholder={t("settings.customApiKeyPlaceholder")}
               onChange={(event) => onChange({ ...settings, customApiKey: event.target.value })}
             />
+          </label>
+          <label className="hfis-check-row">
+            <input
+              type="checkbox"
+              checked={settings.codexCli}
+              onChange={(event) => onChange({ ...settings, codexCli: event.target.checked })}
+            />
+            <span>{t("settings.codexCli")}</span>
+          </label>
+          <label className="hfis-check-row">
+            <input
+              type="checkbox"
+              checked={settings.responseFormatB64Json}
+              onChange={(event) => onChange({ ...settings, responseFormatB64Json: event.target.checked })}
+            />
+            <span>{t("settings.responseFormatB64Json")}</span>
           </label>
           <label className="hfis-check-row">
             <input

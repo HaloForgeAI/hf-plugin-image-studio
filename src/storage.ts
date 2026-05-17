@@ -5,8 +5,11 @@ export const DEFAULT_SETTINGS: StudioSettings = {
   defaultModel: DEFAULT_IMAGE_MODEL,
   defaultSize: "1024x1024",
   gatewayMode: "auto",
+  apiMode: "images",
   customBaseUrl: "",
   customApiKey: "",
+  codexCli: false,
+  responseFormatB64Json: true,
   clearPromptAfterSubmit: true,
   galleryColumns: 4,
   persistHistory: true,
@@ -101,8 +104,11 @@ function normalizeSettings(value: Partial<StudioSettings>): StudioSettings {
     gatewayMode: rawGatewayMode === "custom" || rawGatewayMode === "cloud" || rawGatewayMode === "enterprise"
       ? rawGatewayMode === "enterprise" ? "cloud" : rawGatewayMode
       : DEFAULT_SETTINGS.gatewayMode,
+    apiMode: value.apiMode === "responses" ? "responses" : DEFAULT_SETTINGS.apiMode,
     customBaseUrl: typeof value.customBaseUrl === "string" ? value.customBaseUrl.trim() : DEFAULT_SETTINGS.customBaseUrl,
     customApiKey: typeof value.customApiKey === "string" ? value.customApiKey : DEFAULT_SETTINGS.customApiKey,
+    codexCli: Boolean(value.codexCli),
+    responseFormatB64Json: value.responseFormatB64Json !== false,
     clearPromptAfterSubmit: value.clearPromptAfterSubmit ?? DEFAULT_SETTINGS.clearPromptAfterSubmit,
     galleryColumns: clampGalleryColumns(value.galleryColumns),
     persistHistory: value.persistHistory ?? DEFAULT_SETTINGS.persistHistory,

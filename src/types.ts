@@ -43,13 +43,17 @@ export interface ImageStudioTask {
 
 export type TaskStatusFilter = "all" | TaskStatus;
 export type GatewayMode = "auto" | "cloud" | "custom";
+export type ImageApiMode = "images" | "responses";
 
 export interface StudioSettings {
   defaultModel: string;
   defaultSize: string;
   gatewayMode: GatewayMode;
+  apiMode: ImageApiMode;
   customBaseUrl: string;
   customApiKey: string;
+  codexCli: boolean;
+  responseFormatB64Json: boolean;
   clearPromptAfterSubmit: boolean;
   galleryColumns: number;
   persistHistory: boolean;
