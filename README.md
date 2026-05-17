@@ -33,6 +33,7 @@ Image Studio supports two custom endpoint request modes:
 - Responses API sends both generation and edit-style reference-image requests to `/v1/responses` using the `image_generation` tool and normalizes `image_generation_call` results back to the standard `data[]` image shape.
 
 Codex CLI compatibility can be enabled from Settings. It omits the `quality` field for providers that reject it, applies the prompt rewrite guard, and splits multi-image requests into concurrent single-image calls.
+The bundled defaults match the Codex-compatible Images API path: `gpt-image-2`, `/v1/images/generations`, base64 response format disabled unless explicitly enabled, and a 600-second backend request timeout. JPEG and WebP expose `output_compression`; PNG intentionally disables compression because the OpenAI-compatible Images API does not use that parameter for PNG.
 
 ## Generation Logs
 
@@ -60,7 +61,7 @@ npm run plugin:check
 npm run plugin:pack
 
 cd /path/to/HaloForge
-npm run hf -- plugin install local /path/to/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.4.hfpkg --json
+npm run hf -- plugin install local /path/to/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.5.hfpkg --json
 npm run hf -- plugin list --json
 ```
 
@@ -71,7 +72,7 @@ The ordinary browser can validate the standalone plugin UI. Real managed-gateway
 ```bash
 gh workflow run "Plugin Release" \
   --repo HaloForgeAI/hf-plugin-image-studio \
-  -f release_tag=v0.1.4 \
-  -f release_name="Image Studio v0.1.4" \
+  -f release_tag=v0.1.5 \
+  -f release_name="Image Studio v0.1.5" \
   -f source=official
 ```

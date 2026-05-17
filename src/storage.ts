@@ -1,5 +1,5 @@
 import type { ImageStudioTask, StudioParams, StudioSettings } from "./types";
-import { DEFAULT_IMAGE_MODEL, isImageModel } from "./modelOptions";
+import { DEFAULT_IMAGE_MODEL, normalizeImageModel } from "./modelOptions";
 
 export const DEFAULT_SETTINGS: StudioSettings = {
   defaultModel: DEFAULT_IMAGE_MODEL,
@@ -9,7 +9,7 @@ export const DEFAULT_SETTINGS: StudioSettings = {
   customBaseUrl: "",
   customApiKey: "",
   codexCli: false,
-  responseFormatB64Json: true,
+  responseFormatB64Json: false,
   clearPromptAfterSubmit: true,
   galleryColumns: 4,
   persistHistory: true,
@@ -95,9 +95,7 @@ function normalizeSettings(value: Partial<StudioSettings>): StudioSettings {
   const rawGatewayMode = typeof value.gatewayMode === "string" ? String(value.gatewayMode) : "";
   const rawDefaultModel = typeof value.defaultModel === "string" ? value.defaultModel.trim() : "";
   return {
-    defaultModel: isImageModel(rawDefaultModel)
-      ? rawDefaultModel
-      : DEFAULT_SETTINGS.defaultModel,
+    defaultModel: normalizeImageModel(rawDefaultModel),
     defaultSize: typeof value.defaultSize === "string" && value.defaultSize.trim()
       ? value.defaultSize.trim()
       : DEFAULT_SETTINGS.defaultSize,
@@ -108,7 +106,7 @@ function normalizeSettings(value: Partial<StudioSettings>): StudioSettings {
     customBaseUrl: typeof value.customBaseUrl === "string" ? value.customBaseUrl.trim() : DEFAULT_SETTINGS.customBaseUrl,
     customApiKey: typeof value.customApiKey === "string" ? value.customApiKey : DEFAULT_SETTINGS.customApiKey,
     codexCli: Boolean(value.codexCli),
-    responseFormatB64Json: value.responseFormatB64Json !== false,
+    responseFormatB64Json: Boolean(value.responseFormatB64Json),
     clearPromptAfterSubmit: value.clearPromptAfterSubmit ?? DEFAULT_SETTINGS.clearPromptAfterSubmit,
     galleryColumns: clampGalleryColumns(value.galleryColumns),
     persistHistory: value.persistHistory ?? DEFAULT_SETTINGS.persistHistory,

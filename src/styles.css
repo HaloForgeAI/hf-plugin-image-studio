@@ -607,6 +607,122 @@ body {
   font-size: 13px;
 }
 
+.hfis-running {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 22%, color-mix(in srgb, var(--hfis-primary) 22%, transparent), transparent 30%),
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--hfis-panel-strong) 78%, var(--hfis-primary) 8%),
+      color-mix(in srgb, var(--hfis-background) 84%, var(--hfis-foreground) 16%));
+}
+
+.hfis-running::before {
+  position: absolute;
+  inset: -40%;
+  content: "";
+  background:
+    linear-gradient(115deg, transparent 35%, color-mix(in srgb, #ffffff 22%, transparent) 46%, transparent 57%),
+    repeating-linear-gradient(90deg, color-mix(in srgb, #ffffff 8%, transparent) 0 1px, transparent 1px 44px);
+  animation: hfis-running-scan 2.4s ease-in-out infinite;
+}
+
+.hfis-running > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hfis-running-clock {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.34);
+  color: #ffffff;
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1;
+}
+
+.hfis-generation-stage {
+  display: grid;
+  width: min(68%, 190px);
+  gap: 14px;
+  place-items: center;
+}
+
+.hfis-generation-frame {
+  position: relative;
+  display: grid;
+  width: min(34vw, 96px);
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--hfis-primary) 26%, rgba(255, 255, 255, 0.18));
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 34% 30%, color-mix(in srgb, #ffffff 28%, transparent), transparent 34%),
+    color-mix(in srgb, var(--hfis-primary) 18%, var(--hfis-panel-strong) 82%);
+  color: #ffffff;
+  box-shadow:
+    0 18px 44px color-mix(in srgb, var(--hfis-primary) 22%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #ffffff 20%, transparent);
+  animation: hfis-generation-breathe 1.9s ease-in-out infinite;
+}
+
+.hfis-generation-spark {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--hfis-primary) 72%, #ffffff 28%);
+  box-shadow: 0 0 18px currentColor;
+  animation: hfis-generation-spark 1.7s ease-in-out infinite;
+}
+
+.hfis-generation-spark:nth-of-type(1) {
+  top: 16%;
+  right: 18%;
+}
+
+.hfis-generation-spark:nth-of-type(2) {
+  bottom: 18%;
+  left: 15%;
+  animation-delay: 0.28s;
+}
+
+.hfis-generation-spark:nth-of-type(3) {
+  right: 14%;
+  bottom: 22%;
+  animation-delay: 0.56s;
+}
+
+.hfis-generation-progress {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.hfis-generation-progress span {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: 44%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--hfis-primary), color-mix(in srgb, #ffffff 58%, var(--hfis-primary) 42%));
+  animation: hfis-generation-progress 2.1s ease-in-out infinite;
+}
+
+.hfis-running small {
+  color: color-mix(in srgb, #ffffff 76%, transparent);
+  font-size: 11px;
+}
+
 .hfis-spin {
   animation: hfis-spin 1s linear infinite;
 }
@@ -914,7 +1030,8 @@ body {
 }
 
 .hfis-param-popover input,
-.hfis-param-select {
+.hfis-param-select,
+.hfis-param-note {
   position: relative;
   width: 100%;
   min-width: 0;
@@ -925,6 +1042,17 @@ body {
   min-height: 24px;
   outline: none;
   padding-inline: 0;
+}
+
+.hfis-param-note {
+  display: block;
+  overflow: hidden;
+  color: color-mix(in srgb, var(--hfis-muted) 78%, transparent);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hfis-param-popover input[type="number"] {
@@ -987,6 +1115,52 @@ body {
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hfis-generation-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.035);
+  }
+}
+
+@keyframes hfis-generation-spark {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.78);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.22);
+  }
+}
+
+@keyframes hfis-generation-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+  55% {
+    transform: translateX(80%);
+  }
+  100% {
+    transform: translateX(230%);
+  }
+}
+
+@keyframes hfis-running-scan {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: translateX(-20%) rotate(0deg);
+  }
+  50% {
+    opacity: 0.68;
+    transform: translateX(18%) rotate(0deg);
   }
 }
 

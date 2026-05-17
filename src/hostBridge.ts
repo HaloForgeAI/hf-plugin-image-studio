@@ -66,6 +66,7 @@ export async function generateImageTask(input: {
   const prompt = shouldGuardPrompt
     ? `${PROMPT_REWRITE_GUARD_PREFIX}\n${input.prompt}`
     : input.prompt;
+  const outputCompression = input.params.format === "png" ? null : input.params.compression;
   const baseRequest = {
     model: input.params.model,
     prompt,
@@ -73,7 +74,7 @@ export async function generateImageTask(input: {
     n: input.params.count,
     output_format: input.params.format,
     moderation: input.params.moderation,
-    ...(input.params.compression == null ? {} : { output_compression: input.params.compression }),
+    ...(outputCompression == null ? {} : { output_compression: outputCompression }),
     ...(input.settings.codexCli ? {} : { quality: input.params.quality }),
     ...(input.settings.responseFormatB64Json ? { response_format: "b64_json" as const } : {}),
   };
@@ -219,7 +220,9 @@ async function runGatewayRequest(input: {
         size: input.params.size,
         output_format: input.params.format,
         ...(input.settings.codexCli ? {} : { quality: input.params.quality }),
-        ...(input.params.compression == null ? {} : { output_compression: input.params.compression }),
+        ...(input.params.format === "png" || input.params.compression == null
+          ? {}
+          : { output_compression: input.params.compression }),
         ...(input.maskedReference?.maskDataUrl
           ? { input_image_mask: { image_url: input.maskedReference.maskDataUrl } }
           : {}),

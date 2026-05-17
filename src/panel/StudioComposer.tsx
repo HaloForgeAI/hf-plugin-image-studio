@@ -56,6 +56,7 @@ export function StudioComposer({
     params.quality === "auto" ? null : params.quality,
     params.count > 1 ? t("task.outputs", { count: params.count }) : null,
     params.format,
+    params.format !== "png" && params.compression != null ? `${params.compression}%` : null,
   ].filter(Boolean).join(" · ");
 
   return (
@@ -167,7 +168,15 @@ export function StudioComposer({
                   </label>
                   <label>
                     <span>{t("composer.format")}</span>
-                    <AppSelect className="hfis-param-select" value={params.format} onChange={(event) => onParamsChange({ ...params, format: event.target.value as StudioParams["format"] })} placement="top">
+                    <AppSelect
+                      className="hfis-param-select"
+                      value={params.format}
+                      onChange={(event) => {
+                        const format = event.target.value as StudioParams["format"];
+                        onParamsChange({ ...params, format, compression: format === "png" ? null : params.compression });
+                      }}
+                      placement="top"
+                    >
                       <option value="png">png</option>
                       <option value="jpeg">jpeg</option>
                       <option value="webp">webp</option>
@@ -192,18 +201,21 @@ export function StudioComposer({
                   </label>
                   <label>
                     <span>{t("composer.compression")}</span>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      disabled={params.format === "png"}
-                      value={params.compression ?? ""}
-                      placeholder={params.format === "png" ? "n/a" : "auto"}
-                      onChange={(event) => onParamsChange({
-                        ...params,
-                        compression: event.target.value.trim() === "" ? null : clampPercent(Number(event.target.value)),
-                      })}
-                    />
+                    {params.format === "png" ? (
+                      <em className="hfis-param-note">{t("composer.compressionPngDisabled")}</em>
+                    ) : (
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={params.compression ?? ""}
+                        placeholder="auto"
+                        onChange={(event) => onParamsChange({
+                          ...params,
+                          compression: event.target.value.trim() === "" ? null : clampPercent(Number(event.target.value)),
+                        })}
+                      />
+                    )}
                   </label>
                 </div>
               )}

@@ -1,6 +1,6 @@
 import { AppTooltip } from "@haloforge/plugin-sdk";
 import { CopyPlus, Download, Edit3, Image, Loader2, RefreshCw, Star, Trash2 } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import type { ImageStudioT } from "../i18n";
 import type { ImageStudioTask } from "../types";
 
@@ -31,6 +31,14 @@ export function TaskGrid({
   onOpenTask,
   onOpenLightbox,
 }: TaskGridProps) {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!tasks.some((task) => task.status === "running")) return undefined;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [tasks]);
+
   return (
     <section className="hfis-grid" style={{ "--hfis-gallery-columns": galleryColumns } as CSSProperties}>
       {tasks.length === 0 ? (
@@ -40,7 +48,7 @@ export function TaskGrid({
         </div>
       ) : tasks.map((task) => {
         const selected = selectedTaskIds.includes(task.id);
-        const duration = formatDuration(task.createdAt, task.finishedAt ?? Date.now());
+        const duration = formatDuration(task.createdAt, task.finishedAt ?? now);
         const firstSize = task.outputSizes[0];
         return (
           <article key={task.id} className={`hfis-card ${selected ? "is-selected" : ""}`}>
@@ -60,8 +68,20 @@ export function TaskGrid({
             >
               {task.status === "running" && (
                 <div className="hfis-running">
-                  <Loader2 className="hfis-spin" size={32} />
+                  <span className="hfis-running-clock">{duration}</span>
+                  <div className="hfis-generation-stage" aria-hidden="true">
+                    <div className="hfis-generation-frame">
+                      <Loader2 className="hfis-spin" size={22} />
+                      <span className="hfis-generation-spark" />
+                      <span className="hfis-generation-spark" />
+                      <span className="hfis-generation-spark" />
+                    </div>
+                    <div className="hfis-generation-progress">
+                      <span />
+                    </div>
+                  </div>
                   <span>{t("task.generating")}</span>
+                  <small>{t("task.elapsed", { time: duration })}</small>
                 </div>
               )}
               {task.status === "error" && (

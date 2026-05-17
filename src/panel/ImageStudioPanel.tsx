@@ -192,11 +192,15 @@ export function ImageStudioPanel() {
   }
 
   function updateSettings(next: StudioSettings) {
-    setSettings(next);
+    const normalizedNext = {
+      ...next,
+      defaultModel: normalizeLegacyModel(next.defaultModel),
+    };
+    setSettings(normalizedNext);
     setParams((current) => ({
       ...current,
-      model: current.model === settings.defaultModel ? next.defaultModel : current.model,
-      size: current.size === settings.defaultSize ? next.defaultSize : current.size,
+      model: normalizeLegacyModel(current.model === settings.defaultModel ? normalizedNext.defaultModel : current.model),
+      size: current.size === settings.defaultSize ? normalizedNext.defaultSize : current.size,
     }));
   }
 
@@ -358,4 +362,8 @@ function readImageSize(src: string): Promise<string> {
     image.onerror = () => resolve("");
     image.src = src;
   });
+}
+
+function normalizeLegacyModel(model: string): string {
+  return model === "gpt-image-2.0" ? "gpt-image-2" : model;
 }
