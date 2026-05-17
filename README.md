@@ -29,13 +29,17 @@ Community installs can use the Settings dialog to set a custom OpenAI-compatible
 
 ## Package And Install
 
+Use `hf-pack` to build the package, then use the HaloForge `hf` CLI to install it into the local workspace. In a HaloForge source checkout, run `npm run hf -- ...`; on Windows installed builds, reopen the terminal and run `hf ...` directly. On macOS, run `command -v hf` first because automatic PATH linking is not implemented yet.
+
 ```bash
-cd /Users/loyio/gitrepo/hf-plugin-image-studio
+cd /path/to/hf-plugin-image-studio
 npm install
 npm run plugin:check
 npm run plugin:pack
-cd /Users/loyio/gitRepo/HaloForge
-npm run hf -- plugin install local /Users/loyio/gitrepo/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.0.hfpkg --json
+
+cd /path/to/HaloForge
+npm run hf -- plugin install local /path/to/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.1.hfpkg --json
+npm run hf -- plugin list --json
 ```
 
 The ordinary browser can validate the standalone plugin UI. Real managed-gateway image generation must be tested inside HaloForge/Tauri because a normal browser tab does not provide Tauri IPC or the HaloForge plugin host bridge.
@@ -45,7 +49,7 @@ The ordinary browser can validate the standalone plugin UI. Real managed-gateway
 ```bash
 gh workflow run "Plugin Release" \
   --repo HaloForgeAI/hf-plugin-image-studio \
-  -f release_tag=v0.1.0 \
-  -f release_name="Image Studio v0.1.0" \
+  -f release_tag=v0.1.1 \
+  -f release_name="Image Studio v0.1.1" \
   -f source=official
 ```
