@@ -7,7 +7,16 @@ registerPlugin("dev.haloforge.image-studio", definePlugin({ panel: ImageStudioPa
 if (import.meta.env.DEV && !window.__hf_plugin_registry) {
   const rootElement = document.getElementById("root");
   if (rootElement) {
-    void import("react-dom/client").then(({ createRoot }) => {
+    void Promise.all([
+      import("@tauri-apps/api/mocks"),
+      import("react-dom/client"),
+    ]).then(([{ mockIPC, mockWindows }, { createRoot }]) => {
+      mockWindows("main");
+      mockIPC((command) => {
+        if (command === "plugin:event|listen") return crypto.randomUUID();
+        if (command === "plugin:event|unlisten") return undefined;
+        return undefined;
+      }, { shouldMockEvents: true });
       createRoot(rootElement).render(<ImageStudioPanel />);
     });
   }

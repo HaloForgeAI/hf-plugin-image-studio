@@ -1,6 +1,6 @@
 {
   "name": "hf-plugin-image-studio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,12 +13,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@haloforge/plugin-sdk": "^0.2.4",
+    "@haloforge/plugin-sdk": "^0.2.5",
     "clsx": "^2.1.1",
     "lucide-react": "^0.500.0"
   },
   "devDependencies": {
-    "@haloforge/plugin-pack": "^0.2.4",
+    "@haloforge/plugin-pack": "^0.2.5",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",

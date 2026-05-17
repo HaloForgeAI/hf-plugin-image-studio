@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { useHostTheme } from "@haloforge/plugin-sdk";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { Settings } from "lucide-react";
+import { AppTooltip, useHostTheme } from "@haloforge/plugin-sdk";
 import { generateImageTask, getGatewayState } from "../hostBridge";
 import { useImageStudioT } from "../i18n";
 import {
@@ -15,7 +16,6 @@ import { Lightbox } from "./Lightbox";
 import { SearchBar } from "./SearchBar";
 import { SettingsModal } from "./SettingsModal";
 import { StudioComposer } from "./StudioComposer";
-import { StudioHeader } from "./StudioHeader";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskGrid } from "./TaskGrid";
 
@@ -219,20 +219,19 @@ export function ImageStudioPanel() {
     <div
       className="hfis-root"
       data-hfis-theme={theme.type}
+      style={{ "--hfis-gallery-columns": settings.galleryColumns } as CSSProperties}
       onDrop={attachDroppedFiles}
       onDragOver={(event) => event.preventDefault()}
       onPaste={attachPastedFiles}
     >
-      <StudioHeader
-        title={t("app.title")}
-        settingsTitle={t("settings.title")}
-        gatewayReady={gatewayReady}
-        gatewayStatus={t(gatewayState.labelKey)}
-        taskCount={tasks.length}
-        onSettingsClick={() => setSettingsOpen(true)}
-      />
-
       <div className="hfis-toolbar">
+        <AppTooltip className="hfis-toolbar-meta-wrap" content={t(gatewayState.labelKey)} placement="bottom">
+          <span className="hfis-toolbar-meta" data-ready={gatewayReady ? "true" : "false"}>
+            <span className="hfis-toolbar-dot" />
+            <span>{t(gatewayState.labelKey)}</span>
+            <span>{tasks.length} tasks</span>
+          </span>
+        </AppTooltip>
         <SearchBar
           t={t}
           filterFavorite={filterFavorite}
@@ -242,12 +241,23 @@ export function ImageStudioPanel() {
           onFilterStatusChange={setFilterStatus}
           onSearchQueryChange={setSearchQuery}
         />
+        <AppTooltip content={t("settings.title")} placement="bottom">
+          <button
+            type="button"
+            className="hfis-icon-button hfis-toolbar-settings"
+            aria-label={t("settings.title")}
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings size={17} />
+          </button>
+        </AppTooltip>
       </div>
 
       <main className="hfis-main" data-drag-select-surface>
         <TaskGrid
           t={t}
           tasks={filteredTasks}
+          galleryColumns={settings.galleryColumns}
           selectedTaskIds={selectedTaskIds}
           onReuseTask={retryTask}
           onEditTask={editFromTask}

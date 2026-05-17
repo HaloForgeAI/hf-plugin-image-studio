@@ -51,5 +51,6 @@ export interface StudioSettings {
   customBaseUrl: string;
   customApiKey: string;
   clearPromptAfterSubmit: boolean;
+  galleryColumns: number;
   persistHistory: boolean;
 }

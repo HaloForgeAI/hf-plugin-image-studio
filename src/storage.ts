@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS: StudioSettings = {
   customBaseUrl: "",
   customApiKey: "",
   clearPromptAfterSubmit: true,
+  galleryColumns: 4,
   persistHistory: true,
 };
 
@@ -103,8 +104,15 @@ function normalizeSettings(value: Partial<StudioSettings>): StudioSettings {
     customBaseUrl: typeof value.customBaseUrl === "string" ? value.customBaseUrl.trim() : DEFAULT_SETTINGS.customBaseUrl,
     customApiKey: typeof value.customApiKey === "string" ? value.customApiKey : DEFAULT_SETTINGS.customApiKey,
     clearPromptAfterSubmit: value.clearPromptAfterSubmit ?? DEFAULT_SETTINGS.clearPromptAfterSubmit,
+    galleryColumns: clampGalleryColumns(value.galleryColumns),
     persistHistory: value.persistHistory ?? DEFAULT_SETTINGS.persistHistory,
   };
+}
+
+function clampGalleryColumns(value: unknown): number {
+  const next = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(next)) return DEFAULT_SETTINGS.galleryColumns;
+  return Math.min(8, Math.max(2, Math.round(next)));
 }
 
 function openDb(): Promise<IDBDatabase> {

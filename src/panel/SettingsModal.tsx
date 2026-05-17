@@ -77,6 +77,16 @@ export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }
             />
             <span>{t("settings.clearPrompt")}</span>
           </label>
+          <label>
+            <span>{t("settings.galleryColumns")}</span>
+            <input
+              type="number"
+              min={2}
+              max={8}
+              value={settings.galleryColumns}
+              onChange={(event) => onChange({ ...settings, galleryColumns: clampGalleryColumns(Number(event.target.value)) })}
+            />
+          </label>
           <label className="hfis-check-row">
             <input
               type="checkbox"
@@ -92,4 +102,9 @@ export function SettingsModal({ t, settings, onChange, onClose, onClearHistory }
       </section>
     </div>
   );
+}
+
+function clampGalleryColumns(value: number) {
+  if (!Number.isFinite(value)) return 4;
+  return Math.min(8, Math.max(2, Math.round(value)));
 }

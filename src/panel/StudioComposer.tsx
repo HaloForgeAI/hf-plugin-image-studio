@@ -1,4 +1,4 @@
-import { AppSelect } from "@haloforge/plugin-sdk";
+import { AppSelect, AppTooltip } from "@haloforge/plugin-sdk";
 import { ImagePlus, Paintbrush, Plus, SendHorizontal, SlidersHorizontal, Star, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { ImageStudioT } from "../i18n";
@@ -111,29 +111,32 @@ export function StudioComposer({
           </div>
 
           <div className="hfis-composer-actions">
-            <label className={`hfis-attach hfis-tooltip-fast ${atImageLimit ? "is-disabled" : ""}`} data-tip={atImageLimit ? t("composer.referenceLimit") : t("composer.addReference")} title={atImageLimit ? t("composer.referenceLimit") : t("composer.addReference")}>
-              <ImagePlus size={18} />
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                multiple
-                disabled={atImageLimit}
-                onChange={(event) => {
-                  onAttachReferences(event.target.files);
-                  event.target.value = "";
-                }}
-              />
-            </label>
+            <AppTooltip content={atImageLimit ? t("composer.referenceLimit") : t("composer.addReference")} placement="top">
+              <label className={`hfis-attach ${atImageLimit ? "is-disabled" : ""}`} aria-label={atImageLimit ? t("composer.referenceLimit") : t("composer.addReference")}>
+                <ImagePlus size={18} />
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  multiple
+                  disabled={atImageLimit}
+                  onChange={(event) => {
+                    onAttachReferences(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+            </AppTooltip>
             <div className="hfis-param-popover-wrap">
-              <button
-                type="button"
-                className={`hfis-param-toggle hfis-tooltip-fast ${paramsOpen ? "is-active" : ""}`}
-                onClick={() => setParamsOpen((value) => !value)}
-                title={t("composer.adjustParams")}
-                data-tip={t("composer.adjustParams")}
-              >
-                <Plus size={18} />
-              </button>
+              <AppTooltip content={t("composer.adjustParams")} placement="top">
+                <button
+                  type="button"
+                  className={`hfis-param-toggle ${paramsOpen ? "is-active" : ""}`}
+                  onClick={() => setParamsOpen((value) => !value)}
+                  aria-label={t("composer.adjustParams")}
+                >
+                  <Plus size={18} />
+                </button>
+              </AppTooltip>
               {paramsOpen && (
                 <div className="hfis-param-popover">
                   <label>
@@ -205,16 +208,17 @@ export function StudioComposer({
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              className="hfis-submit hfis-tooltip-fast"
-              disabled={!prompt.trim() || !gatewayReady}
-              onClick={onSubmit}
-              title={gatewayReady ? t("composer.generate") : t("composer.gatewayUnavailable")}
-              data-tip={gatewayReady ? t("composer.generate") : t("composer.gatewayUnavailable")}
-            >
-              <SendHorizontal size={18} />
-            </button>
+            <AppTooltip content={gatewayReady ? t("composer.generate") : t("composer.gatewayUnavailable")} placement="top">
+              <button
+                type="button"
+                className="hfis-submit"
+                disabled={!prompt.trim() || !gatewayReady}
+                onClick={onSubmit}
+                aria-label={gatewayReady ? t("composer.generate") : t("composer.gatewayUnavailable")}
+              >
+                <SendHorizontal size={18} />
+              </button>
+            </AppTooltip>
           </div>
         </div>
       </section>
