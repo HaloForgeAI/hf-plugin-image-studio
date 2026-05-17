@@ -1,6 +1,6 @@
 import { AppSelect, AppTooltip } from "@haloforge/plugin-sdk";
 import { Search, Star, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ImageStudioT } from "../i18n";
 import type { TaskStatusFilter } from "../types";
 
@@ -24,9 +24,37 @@ export function SearchBar({
   onFilterFavoriteChange,
 }: SearchBarProps) {
   const [searchOpen, setSearchOpen] = useState(Boolean(searchQuery.trim()));
+  const searchRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const activeElement = document.activeElement;
+      if (!searchRef.current?.contains(event.target as Node)) {
+        if (activeElement instanceof HTMLElement && searchRef.current?.contains(activeElement)) {
+          activeElement.blur();
+        }
+        setSearchOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setSearchOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [searchOpen]);
 
   return (
-    <section className="hfis-search" data-no-drag-select>
+    <section ref={searchRef} className="hfis-search" data-no-drag-select>
       <AppTooltip content={t("search.open")} placement="bottom">
         <button
           type="button"

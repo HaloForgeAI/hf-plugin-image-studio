@@ -24,7 +24,7 @@ impl HaloForgePlugin for ImageStudioPlugin {
         PluginMetadata {
             id: "dev.haloforge.image-studio".into(),
             name: "Image Studio".into(),
-            version: "0.1.7".into(),
+            version: "0.1.8".into(),
             description: "Professional OpenAI-compatible image generation workspace for HaloForge."
                 .into(),
             author: "HaloForge Team".into(),

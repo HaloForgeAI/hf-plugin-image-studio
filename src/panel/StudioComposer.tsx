@@ -1,6 +1,6 @@
 import { AppSelect, AppTooltip } from "@haloforge/plugin-sdk";
 import { ImagePlus, Paintbrush, Plus, SendHorizontal, SlidersHorizontal, Star, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ImageStudioT } from "../i18n";
 import type { ReferenceImage, StudioParams } from "../types";
 import { IMAGE_MODEL_OPTIONS } from "../modelOptions";
@@ -49,6 +49,7 @@ export function StudioComposer({
   const atImageLimit = references.length >= 16;
   const [maskReferenceId, setMaskReferenceId] = useState<string | null>(null);
   const [paramsOpen, setParamsOpen] = useState(false);
+  const paramsPopoverRef = useRef<HTMLDivElement>(null);
   const maskReference = maskReferenceId ? references.find((reference) => reference.id === maskReferenceId) ?? null : null;
   const modelLabel = IMAGE_MODEL_OPTIONS.find((model) => model.value === params.model)?.label ?? params.model;
   const paramSummary = [
@@ -59,6 +60,33 @@ export function StudioComposer({
     params.format,
     params.format !== "png" && params.compression != null ? `${params.compression}%` : null,
   ].filter(Boolean).join(" · ");
+
+  useEffect(() => {
+    if (!paramsOpen) return;
+
+    function handlePointerDown(event: PointerEvent) {
+      const activeElement = document.activeElement;
+      if (!paramsPopoverRef.current?.contains(event.target as Node)) {
+        if (activeElement instanceof HTMLElement && paramsPopoverRef.current?.contains(activeElement)) {
+          activeElement.blur();
+        }
+        setParamsOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setParamsOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [paramsOpen]);
 
   return (
     <div className="hfis-input-dock" data-input-bar data-no-drag-select>
@@ -128,7 +156,7 @@ export function StudioComposer({
                 />
               </label>
             </AppTooltip>
-            <div className="hfis-param-popover-wrap">
+            <div ref={paramsPopoverRef} className="hfis-param-popover-wrap">
               <AppTooltip content={t("composer.adjustParams")} placement="top">
                 <button
                   type="button"

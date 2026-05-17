@@ -61,7 +61,7 @@ npm run plugin:check
 npm run plugin:pack
 
 cd /path/to/HaloForge
-npm run hf -- plugin install local /path/to/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.7.hfpkg --json
+npm run hf -- plugin install local /path/to/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.8.hfpkg --json
 npm run hf -- plugin list --json
 ```
 
@@ -72,7 +72,7 @@ The ordinary browser can validate the standalone plugin UI. Real managed-gateway
 ```bash
 gh workflow run "Plugin Release" \
   --repo HaloForgeAI/hf-plugin-image-studio \
-  -f release_tag=v0.1.7 \
-  -f release_name="Image Studio v0.1.7" \
+  -f release_tag=v0.1.8 \
+  -f release_name="Image Studio v0.1.8" \
   -f source=official
 ```

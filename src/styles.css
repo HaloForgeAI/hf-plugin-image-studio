@@ -1011,7 +1011,7 @@ body {
 .hfis-param-popover label {
   display: grid;
   min-height: 36px;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 78px minmax(0, 1fr);
   align-items: center;
   gap: 7px;
   border: 1px solid var(--hfis-border);
@@ -1046,7 +1046,9 @@ body {
 }
 
 .hfis-param-note {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   overflow: hidden;
   color: color-mix(in srgb, var(--hfis-muted) 78%, transparent);
   font-size: 11px;
@@ -1054,7 +1056,7 @@ body {
   line-height: 1.25;
   text-align: right;
   text-overflow: ellipsis;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .hfis-number-stepper {
@@ -1067,13 +1069,22 @@ body {
 }
 
 .hfis-number-stepper button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 26px;
   height: 26px;
   border: 1px solid var(--hfis-border);
   border-radius: 7px;
   background: color-mix(in srgb, var(--hfis-background) 78%, transparent);
   color: var(--hfis-foreground);
+  line-height: 0;
   padding: 0;
+}
+
+.hfis-number-stepper button svg {
+  display: block;
+  flex: 0 0 auto;
 }
 
 .hfis-number-stepper input {
@@ -1526,12 +1537,25 @@ body {
 }
 
 .hfis-mask-tool-size {
-  display: inline-block;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+}
+
+.hfis-mask-tool-size::after {
   width: var(--hfis-tool-size, 10px);
   height: var(--hfis-tool-size, 10px);
   border: 1px solid currentColor;
   border-radius: 999px;
   background: color-mix(in srgb, currentColor 10%, transparent);
+  content: "";
+}
+
+.hfis-mask-toolbar button small {
+  min-width: 38px;
+  text-align: right;
 }
 
 .hfis-mask-save {
