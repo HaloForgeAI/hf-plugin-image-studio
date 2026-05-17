@@ -45,7 +45,7 @@ jobs:
         shell: pwsh
         run: |
           git clone https://github.com/HaloForgeAI/haloforge-plugin-api.git "$env:RUNNER_TEMP/hf-plugin-api"
-          git -C "$env:RUNNER_TEMP/hf-plugin-api" checkout 9ddc7ab5ae88e543b48bf099cd7548466cecfb02
+          git -C "$env:RUNNER_TEMP/hf-plugin-api" checkout 286c208f4a8f0c27e8c5b55d0f961b75e6c85306
 
       - name: Build plugin tooling
         shell: pwsh
