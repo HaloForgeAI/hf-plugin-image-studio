@@ -1,4 +1,4 @@
-import { enterpriseGateway, invokePlugin } from "@haloforge/plugin-sdk";
+import { createPluginLogger, enterpriseGateway, invokePlugin } from "@haloforge/plugin-sdk";
 import type {
   EnterpriseGatewayApi,
   GatewayImageGenerationResult,
@@ -8,6 +8,13 @@ import type {
 } from "@haloforge/plugin-sdk";
 import type { ImageStudioTranslationKey } from "./i18n";
 import type { ImageStudioTask, ReferenceImage, StudioParams, StudioSettings } from "./types";
+
+let logger: ReturnType<typeof createPluginLogger> | null = null;
+
+function imageStudioLogger(): ReturnType<typeof createPluginLogger> {
+  logger ??= createPluginLogger("image-studio");
+  return logger;
+}
 
 declare global {
   interface Window {
@@ -47,13 +54,12 @@ export function getGatewayState(settings: StudioSettings): { ready: boolean; lab
 }
 
 export async function generateImageTask(input: {
+  taskId?: string;
   prompt: string;
   params: StudioParams;
   references: ReferenceImage[];
   settings: StudioSettings;
 }): Promise<Pick<ImageStudioTask, "outputs" | "assets" | "revisedPrompt">> {
-  const gateway = getGateway(input.settings);
-
   const baseRequest = {
     model: input.params.model,
     prompt: input.prompt,
@@ -70,34 +76,85 @@ export async function generateImageTask(input: {
   const orderedReferences = maskedReference
     ? [maskedReference, ...input.references.filter((reference) => reference.id !== maskedReference.id)]
     : input.references;
+  const startedAt = performance.now();
+  let resolvedGateway: ReturnType<typeof getGateway>;
+  try {
+    resolvedGateway = getGateway(input.settings);
+  } catch (error) {
+    await imageStudioLogger().error("Image Studio gateway unavailable", {
+      taskId: input.taskId ?? null,
+      gatewayMode: input.settings.gatewayMode,
+      promptChars: input.prompt.length,
+      referenceCount: orderedReferences.length,
+      elapsedMs: Math.round(performance.now() - startedAt),
+      error: errorMessage(error),
+    });
+    throw error;
+  }
 
-  const response = orderedReferences.length > 0 && gateway.editImages
-    ? await gateway.editImages({
-      ...baseRequest,
-      images: orderedReferences.map((reference) => ({
-        field_name: "image",
-        file_name: reference.name,
-        content_type: reference.contentType,
-        b64_json: stripDataUrl(reference.dataUrl),
-      })),
-      ...(maskedReference?.maskDataUrl
-        ? {
-          mask: {
-            field_name: "mask",
-            file_name: `${fileNameStem(maskedReference.name)}-mask.png`,
-            content_type: "image/png",
-            b64_json: stripDataUrl(maskedReference.maskDataUrl),
-          },
-        }
-        : {}),
-    })
-    : await gateway.generateImages(baseRequest);
-
-  return {
-    outputs: normalizeImages(response, input.params.format),
-    assets: response.hf_output_assets ?? [],
-    revisedPrompt: response.data?.find((item) => item.revised_prompt)?.revised_prompt ?? null,
+  const operation = orderedReferences.length > 0 ? "edit" : "generation";
+  const diagnosticDetails = {
+    taskId: input.taskId ?? null,
+    gateway: resolvedGateway.kind,
+    operation,
+    model: input.params.model,
+    size: input.params.size,
+    count: input.params.count,
+    quality: input.params.quality,
+    format: input.params.format,
+    moderation: input.params.moderation,
+    promptChars: input.prompt.length,
+    referenceCount: orderedReferences.length,
+    maskPresent: Boolean(maskedReference?.maskDataUrl),
   };
+
+  await imageStudioLogger().info("Image Studio generation started", diagnosticDetails);
+
+  try {
+    const response = operation === "edit"
+      ? await resolvedGateway.gateway.editImages({
+        ...baseRequest,
+        images: orderedReferences.map((reference) => ({
+          field_name: "image",
+          file_name: reference.name,
+          content_type: reference.contentType,
+          b64_json: stripDataUrl(reference.dataUrl),
+        })),
+        ...(maskedReference?.maskDataUrl
+          ? {
+            mask: {
+              field_name: "mask",
+              file_name: `${fileNameStem(maskedReference.name)}-mask.png`,
+              content_type: "image/png",
+              b64_json: stripDataUrl(maskedReference.maskDataUrl),
+            },
+          }
+          : {}),
+      })
+      : await resolvedGateway.gateway.generateImages(baseRequest);
+
+    const outputs = normalizeImages(response, input.params.format);
+    const assets = response.hf_output_assets ?? [];
+    await imageStudioLogger().info("Image Studio generation succeeded", {
+      ...diagnosticDetails,
+      elapsedMs: Math.round(performance.now() - startedAt),
+      outputCount: outputs.length,
+      assetCount: assets.length,
+    });
+
+    return {
+      outputs,
+      assets,
+      revisedPrompt: response.data?.find((item) => item.revised_prompt)?.revised_prompt ?? null,
+    };
+  } catch (error) {
+    await imageStudioLogger().error("Image Studio generation failed", {
+      ...diagnosticDetails,
+      elapsedMs: Math.round(performance.now() - startedAt),
+      error: errorMessage(error),
+    });
+    throw error;
+  }
 }
 
 function normalizeImages(response: GatewayImageGenerationResult, format: StudioParams["format"]): string[] {
@@ -127,17 +184,24 @@ function fileNameStem(fileName: string): string {
   return dot > 0 ? trimmed.slice(0, dot) : trimmed || "image";
 }
 
-function getGateway(settings: StudioSettings): EnterpriseGatewayApi {
+type GatewayKind = "cloud" | "custom" | "mock";
+
+function getGateway(settings: StudioSettings): { gateway: EnterpriseGatewayApi; kind: GatewayKind } {
   const enterprise = getEnterpriseGateway();
   const custom = hasCustomGateway(settings) ? createCustomGateway(settings) : null;
 
-  if (settings.gatewayMode === "cloud") return enterprise ?? createDevMockOrThrow();
+  if (settings.gatewayMode === "cloud") {
+    if (enterprise) return { gateway: enterprise, kind: "cloud" };
+    return { gateway: createDevMockOrThrow(), kind: "mock" };
+  }
   if (settings.gatewayMode === "custom") {
-    if (custom) return custom;
+    if (custom) return { gateway: custom, kind: "custom" };
     throw new Error("Custom image gateway base URL is required.");
   }
 
-  return enterprise ?? custom ?? createDevMockOrThrow();
+  if (enterprise) return { gateway: enterprise, kind: "cloud" };
+  if (custom) return { gateway: custom, kind: "custom" };
+  return { gateway: createDevMockOrThrow(), kind: "mock" };
 }
 
 function getEnterpriseGateway(): EnterpriseGatewayApi | null {
@@ -183,6 +247,11 @@ function createMockGateway(): EnterpriseGatewayApi {
     editImages: async (request) => createMockResponse(request),
     listOutputs: async () => ({ outputs: [] }),
   };
+}
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return String(error);
 }
 
 async function createMockResponse(

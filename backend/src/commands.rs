@@ -1,14 +1,16 @@
 use base64::{engine::general_purpose::STANDARD, Engine as _};
-use hf_plugin_api::{PluginContext, PluginError};
+use hf_plugin_api::{LogLevel, PluginContext, PluginError};
 use reqwest::blocking::multipart::{Form, Part};
 use reqwest::blocking::{Client, RequestBuilder, Response};
 use reqwest::header::ACCEPT;
 use serde::Deserialize;
 use serde_json::{Map, Value};
-use std::time::Duration;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const GENERATIONS_ENDPOINT: &str = "images/generations";
 const EDITS_ENDPOINT: &str = "images/edits";
+static REQUEST_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,39 +33,109 @@ struct UploadFile {
 
 pub fn image_studio_generate_images(
     args: Value,
-    _ctx: &dyn PluginContext,
+    ctx: &dyn PluginContext,
 ) -> Result<Value, PluginError> {
-    let args: GatewayArgs = parse_args(args)?;
-    let endpoint = resolve_endpoint(&args.base_url, GENERATIONS_ENDPOINT)?;
-    let client = gateway_client()?;
-    let response = with_auth(
+    let request_id = request_id();
+    let started_at = Instant::now();
+    let args: GatewayArgs = match parse_args(args) {
+        Ok(args) => args,
+        Err(error) => {
+            log_failure(ctx, "generation", &request_id, started_at, &error);
+            return Err(error);
+        }
+    };
+    let endpoint = match resolve_endpoint(&args.base_url, GENERATIONS_ENDPOINT) {
+        Ok(endpoint) => endpoint,
+        Err(error) => {
+            log_failure(ctx, "generation", &request_id, started_at, &error);
+            return Err(error);
+        }
+    };
+
+    ctx.log(
+        LogLevel::Info,
+        &format!(
+            "image request started request_id={} {} auth_present={}",
+            request_id,
+            request_summary("generation", &args.request),
+            auth_present(&args.api_key),
+        ),
+    );
+
+    let client = match gateway_client() {
+        Ok(client) => client,
+        Err(error) => {
+            log_failure(ctx, "generation", &request_id, started_at, &error);
+            return Err(error);
+        }
+    };
+    let result = with_auth(
         client.post(endpoint).header(ACCEPT, "application/json"),
         args.api_key.as_deref(),
     )
     .json(&args.request)
     .send()
-    .map_err(network_error)?;
+    .map_err(network_error)
+    .and_then(parse_gateway_response);
 
-    parse_gateway_response(response)
+    finish_request(ctx, "generation", &request_id, started_at, result)
 }
 
 pub fn image_studio_edit_images(
     args: Value,
-    _ctx: &dyn PluginContext,
+    ctx: &dyn PluginContext,
 ) -> Result<Value, PluginError> {
-    let args: GatewayArgs = parse_args(args)?;
-    let endpoint = resolve_endpoint(&args.base_url, EDITS_ENDPOINT)?;
-    let form = build_edit_form(args.request)?;
-    let client = gateway_client()?;
-    let response = with_auth(
+    let request_id = request_id();
+    let started_at = Instant::now();
+    let args: GatewayArgs = match parse_args(args) {
+        Ok(args) => args,
+        Err(error) => {
+            log_failure(ctx, "edit", &request_id, started_at, &error);
+            return Err(error);
+        }
+    };
+    let endpoint = match resolve_endpoint(&args.base_url, EDITS_ENDPOINT) {
+        Ok(endpoint) => endpoint,
+        Err(error) => {
+            log_failure(ctx, "edit", &request_id, started_at, &error);
+            return Err(error);
+        }
+    };
+
+    ctx.log(
+        LogLevel::Info,
+        &format!(
+            "image request started request_id={} {} auth_present={}",
+            request_id,
+            request_summary("edit", &args.request),
+            auth_present(&args.api_key),
+        ),
+    );
+
+    let form = match build_edit_form(args.request) {
+        Ok(form) => form,
+        Err(error) => {
+            log_failure(ctx, "edit", &request_id, started_at, &error);
+            return Err(error);
+        }
+    };
+    let client = match gateway_client() {
+        Ok(client) => client,
+        Err(error) => {
+            log_failure(ctx, "edit", &request_id, started_at, &error);
+            return Err(error);
+        }
+    };
+    let result = with_auth(
         client.post(endpoint).header(ACCEPT, "application/json"),
         args.api_key.as_deref(),
     )
     .multipart(form)
     .send()
-    .map_err(network_error)?;
+    .map_err(network_error)
+    .and_then(parse_gateway_response);
 
-    parse_gateway_response(response)
+    finish_request(ctx, "edit", &request_id, started_at, result)
 }
 
 fn parse_args<T: for<'de> Deserialize<'de>>(args: Value) -> Result<T, PluginError> {
@@ -73,7 +145,7 @@ fn parse_args<T: for<'de> Deserialize<'de>>(args: Value) -> Result<T, PluginErro
 fn gateway_client() -> Result<Client, PluginError> {
     Client::builder()
         .timeout(Duration::from_secs(180))
-        .user_agent("HaloForge Image Studio/0.1.0")
+        .user_agent("HaloForge Image Studio/0.1.3")
         .build()
         .map_err(network_error)
 }
@@ -194,8 +266,9 @@ fn resolve_endpoint(base_url: &str, endpoint: &str) -> Result<String, PluginErro
     Ok(format!("{trimmed}/{endpoint}"))
 }
 
-fn parse_gateway_response(response: Response) -> Result<Value, PluginError> {
+fn parse_gateway_response(response: Response) -> Result<(Value, u16), PluginError> {
     let status = response.status();
+    let status_code = status.as_u16();
     let text = response.text().map_err(network_error)?;
     let json = parse_json_or_text(&text);
 
@@ -214,7 +287,7 @@ fn parse_gateway_response(response: Response) -> Result<Value, PluginError> {
         )));
     }
 
-    Ok(json)
+    Ok((json, status_code))
 }
 
 fn parse_json_or_text(text: &str) -> Value {
@@ -234,4 +307,122 @@ fn gateway_error_message(value: &Value) -> Option<String> {
 
 fn network_error(error: reqwest::Error) -> PluginError {
     PluginError::Network(error.to_string())
+}
+
+fn request_id() -> String {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or_default();
+    let sequence = REQUEST_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("hfis-{millis}-{sequence}")
+}
+
+fn request_summary(operation: &str, request: &Value) -> String {
+    format!(
+        "operation={} model={} size={} count={} quality={} format={} moderation={} prompt_chars={} reference_count={} mask_present={}",
+        operation,
+        string_field(request, "model"),
+        string_field(request, "size"),
+        value_field(request, "n"),
+        string_field(request, "quality"),
+        string_field(request, "output_format"),
+        string_field(request, "moderation"),
+        request
+            .get("prompt")
+            .and_then(Value::as_str)
+            .map(|prompt| prompt.chars().count())
+            .unwrap_or_default(),
+        request
+            .get("images")
+            .and_then(Value::as_array)
+            .map(Vec::len)
+            .unwrap_or_default(),
+        request.get("mask").map(|value| !value.is_null()).unwrap_or(false),
+    )
+}
+
+fn string_field(request: &Value, key: &str) -> String {
+    request
+        .get(key)
+        .and_then(Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("-")
+        .to_string()
+}
+
+fn value_field(request: &Value, key: &str) -> String {
+    request
+        .get(key)
+        .map(|value| match value {
+            Value::Number(number) => number.to_string(),
+            Value::String(value) if !value.trim().is_empty() => value.clone(),
+            _ => "-".to_string(),
+        })
+        .unwrap_or_else(|| "-".to_string())
+}
+
+fn auth_present(api_key: &Option<String>) -> bool {
+    api_key
+        .as_deref()
+        .map(str::trim)
+        .map(|value| !value.is_empty())
+        .unwrap_or(false)
+}
+
+fn finish_request(
+    ctx: &dyn PluginContext,
+    operation: &str,
+    request_id: &str,
+    started_at: Instant,
+    result: Result<(Value, u16), PluginError>,
+) -> Result<Value, PluginError> {
+    match result {
+        Ok((value, status_code)) => {
+            ctx.log(
+                LogLevel::Info,
+                &format!(
+                    "image request succeeded request_id={} operation={} status={} elapsed_ms={} output_count={} asset_count={}",
+                    request_id,
+                    operation,
+                    status_code,
+                    started_at.elapsed().as_millis(),
+                    value
+                        .get("data")
+                        .and_then(Value::as_array)
+                        .map(Vec::len)
+                        .unwrap_or_default(),
+                    value
+                        .get("hf_output_assets")
+                        .and_then(Value::as_array)
+                        .map(Vec::len)
+                        .unwrap_or_default(),
+                ),
+            );
+            Ok(value)
+        }
+        Err(error) => {
+            log_failure(ctx, operation, request_id, started_at, &error);
+            Err(error)
+        }
+    }
+}
+
+fn log_failure(
+    ctx: &dyn PluginContext,
+    operation: &str,
+    request_id: &str,
+    started_at: Instant,
+    error: &PluginError,
+) {
+    ctx.log(
+        LogLevel::Error,
+        &format!(
+            "image request failed request_id={} operation={} elapsed_ms={} error={}",
+            request_id,
+            operation,
+            started_at.elapsed().as_millis(),
+            error,
+        ),
+    );
 }

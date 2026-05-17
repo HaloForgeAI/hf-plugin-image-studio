@@ -95,7 +95,13 @@ export function ImageStudioPanel() {
 
     setTasks((current) => [task, ...current]);
     try {
-      const result = await generateImageTask({ prompt: trimmed, params, references, settings });
+      const result = await generateImageTask({
+        taskId: task.id,
+        prompt: trimmed,
+        params,
+        references,
+        settings,
+      });
       const sizes = await Promise.all(result.outputs.map(readImageSize));
       setTasks((current) => current.map((item) => item.id === task.id
         ? { ...item, ...result, outputSizes: sizes, status: "done", finishedAt: Date.now() }
