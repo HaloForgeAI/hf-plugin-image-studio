@@ -1,9 +1,10 @@
-import { AppSelect, AppTooltip } from "@haloforge/plugin-sdk";
+import { AppTooltip } from "@haloforge/plugin-sdk";
 import { ImagePlus, Paintbrush, Plus, SendHorizontal, SlidersHorizontal, Star, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { ImageStudioT } from "../i18n";
 import type { ReferenceImage, StudioParams } from "../types";
 import { IMAGE_MODEL_OPTIONS } from "../modelOptions";
+import { ClosingAppSelect as AppSelect } from "./ClosingAppSelect";
 import { MaskEditorModal } from "./MaskEditorModal";
 
 interface StudioComposerProps {

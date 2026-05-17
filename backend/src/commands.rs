@@ -5,6 +5,7 @@ use reqwest::blocking::{Client, RequestBuilder, Response};
 use reqwest::header::{HeaderMap, ACCEPT};
 use serde::Deserialize;
 use serde_json::{json, Map, Value};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -34,6 +35,13 @@ struct UploadFile {
     #[serde(default)]
     content_type: Option<String>,
     b64_json: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct WriteImageFileArgs {
+    path: String,
+    data_url: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -262,6 +270,44 @@ pub fn image_studio_edit_images(
     )
 }
 
+pub fn image_studio_write_image_file(
+    args: Value,
+    ctx: &dyn PluginContext,
+) -> Result<Value, PluginError> {
+    let args: WriteImageFileArgs = parse_args(args)?;
+    let path = PathBuf::from(args.path.trim());
+    if path.as_os_str().is_empty() {
+        return Err(PluginError::Serialization(
+            "image save path is required".into(),
+        ));
+    }
+
+    let bytes = image_file_bytes(&args.data_url)?;
+    if bytes.is_empty() {
+        return Err(PluginError::Serialization(
+            "image save payload is empty".into(),
+        ));
+    }
+    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&path, &bytes)?;
+
+    ctx.log(
+        LogLevel::Info,
+        &format!(
+            "image file saved path={} bytes={}",
+            path.display(),
+            bytes.len()
+        ),
+    );
+
+    Ok(json!({
+        "path": path.display().to_string(),
+        "bytes": bytes.len(),
+    }))
+}
+
 fn parse_args<T: for<'de> Deserialize<'de>>(args: Value) -> Result<T, PluginError> {
     serde_json::from_value(args).map_err(|error| PluginError::Serialization(error.to_string()))
 }
@@ -269,7 +315,7 @@ fn parse_args<T: for<'de> Deserialize<'de>>(args: Value) -> Result<T, PluginErro
 fn gateway_client() -> Result<Client, PluginError> {
     Client::builder()
         .timeout(Duration::from_secs(600))
-        .user_agent("HaloForge Image Studio/0.1.5")
+        .user_agent("HaloForge Image Studio/0.1.6")
         .build()
         .map_err(network_error)
 }
@@ -480,6 +526,34 @@ fn decode_base64_payload(value: &str) -> Result<Vec<u8>, PluginError> {
     STANDARD.decode(payload).map_err(|error| {
         PluginError::Serialization(format!("invalid base64 image payload: {error}"))
     })
+}
+
+fn image_file_bytes(source: &str) -> Result<Vec<u8>, PluginError> {
+    let source = source.trim();
+    if source.starts_with("http://") || source.starts_with("https://") {
+        return download_image_bytes(source);
+    }
+    decode_base64_payload(source)
+}
+
+fn download_image_bytes(url: &str) -> Result<Vec<u8>, PluginError> {
+    let response = gateway_client()?
+        .get(url)
+        .header(ACCEPT, "image/*,*/*;q=0.8")
+        .send()
+        .map_err(network_error)?;
+    let status = response.status();
+    if !status.is_success() {
+        let text = response.text().map_err(network_error)?;
+        return Err(PluginError::Network(format!(
+            "image download failed ({status}: {})",
+            response_preview(&text)
+        )));
+    }
+    response
+        .bytes()
+        .map(|bytes| bytes.to_vec())
+        .map_err(network_error)
 }
 
 fn normalize_base_url(base_url: &str) -> Result<String, PluginError> {

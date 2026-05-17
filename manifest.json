@@ -2,7 +2,7 @@
   "$schema": "https://haloforge.dev/schemas/plugin/v1.json",
   "id": "dev.haloforge.image-studio",
   "name": "Image Studio",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Professional OpenAI-compatible image generation workspace for HaloForge.",
   "long_description": "Adds a top-level Image Studio module with prompt-driven image generation, reference images, edit mode, task history, HaloForge Cloud gateway support, custom endpoint fallback, and export workflows.",
   "author": "HaloForge Team",
@@ -15,7 +15,7 @@
     "min_host_api_version": "0.1.0",
     "platforms": ["windows", "macos", "linux"]
   },
-  "host_capabilities": ["navigation", "theme_read", "event_subscribe", "enterprise_gateway"],
+  "host_capabilities": ["navigation", "theme_read", "event_subscribe", "enterprise_gateway", "file_dialogs"],
   "capability_levels": [0],
   "integration": {
     "level0": {
@@ -37,6 +37,8 @@
     { "type": "host_theme_read" },
     { "type": "host_event_subscribe" },
     { "type": "host_enterprise_gateway_access" },
+    { "type": "host_file_dialogs" },
+    { "type": "filesystem_write" },
     { "type": "network_http" }
   ],
   "settings_schema": {
@@ -84,6 +86,10 @@
     {
       "id": "image_studio_edit_images",
       "description": "Send an OpenAI-compatible image edit request through the Image Studio backend."
+    },
+    {
+      "id": "image_studio_write_image_file",
+      "description": "Write a generated image to a host-selected file path."
     }
   ]
 }

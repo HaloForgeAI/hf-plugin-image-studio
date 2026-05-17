@@ -24,7 +24,7 @@ impl HaloForgePlugin for ImageStudioPlugin {
         PluginMetadata {
             id: "dev.haloforge.image-studio".into(),
             name: "Image Studio".into(),
-            version: "0.1.5".into(),
+            version: "0.1.6".into(),
             description: "Professional OpenAI-compatible image generation workspace for HaloForge."
                 .into(),
             author: "HaloForge Team".into(),
@@ -44,6 +44,10 @@ impl HaloForgePlugin for ImageStudioPlugin {
         ipc.register(
             "image_studio_edit_images",
             Box::new(commands::image_studio_edit_images),
+        )?;
+        ipc.register(
+            "image_studio_write_image_file",
+            Box::new(commands::image_studio_write_image_file),
         )?;
 
         ctx.log(LogLevel::Info, "Image Studio plugin loaded");

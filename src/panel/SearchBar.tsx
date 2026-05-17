@@ -1,8 +1,9 @@
-import { AppSelect, AppTooltip } from "@haloforge/plugin-sdk";
+import { AppTooltip } from "@haloforge/plugin-sdk";
 import { Search, Star, X } from "lucide-react";
 import { useState } from "react";
 import type { ImageStudioT } from "../i18n";
 import type { TaskStatusFilter } from "../types";
+import { ClosingAppSelect as AppSelect } from "./ClosingAppSelect";
 
 interface SearchBarProps {
   t: ImageStudioT;

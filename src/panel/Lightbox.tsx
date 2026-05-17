@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
+import { saveGeneratedImage } from "../download";
 import type { ImageStudioT } from "../i18n";
 
 interface LightboxProps {
@@ -15,7 +16,14 @@ export function Lightbox({ t, images, index, onIndexChange, onClose }: LightboxP
   const hasMany = images.length > 1;
 
   return (
-    <div className="hfis-lightbox" role="dialog" aria-modal="true">
+    <div
+      className="hfis-lightbox"
+      role="dialog"
+      aria-modal="true"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
       <button type="button" className="hfis-lightbox-close" onClick={onClose} title={t("common.close")}>
         <X size={22} />
       </button>
@@ -32,10 +40,10 @@ export function Lightbox({ t, images, index, onIndexChange, onClose }: LightboxP
       )}
       <div className="hfis-lightbox-footer">
         <span>{index + 1} / {images.length}</span>
-        <a href={src} download={`image-studio-${index + 1}.png`}>
+        <button type="button" onClick={() => void saveGeneratedImage(src, `image-studio-${index + 1}`, t)}>
           <Download size={16} />
           {t("common.download")}
-        </a>
+        </button>
       </div>
     </div>
   );

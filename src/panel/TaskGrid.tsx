@@ -1,6 +1,7 @@
 import { AppTooltip } from "@haloforge/plugin-sdk";
 import { CopyPlus, Download, Edit3, Image, Loader2, RefreshCw, Star, Trash2 } from "lucide-react";
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { saveGeneratedImage } from "../download";
 import type { ImageStudioT } from "../i18n";
 import type { ImageStudioTask } from "../types";
 
@@ -70,18 +71,15 @@ export function TaskGrid({
                 <div className="hfis-running">
                   <span className="hfis-running-clock">{duration}</span>
                   <div className="hfis-generation-stage" aria-hidden="true">
-                    <div className="hfis-generation-frame">
-                      <Loader2 className="hfis-spin" size={22} />
-                      <span className="hfis-generation-spark" />
-                      <span className="hfis-generation-spark" />
-                      <span className="hfis-generation-spark" />
-                    </div>
+                    <Loader2 className="hfis-spin" size={28} />
+                    <span className="hfis-generation-spark" />
+                    <span className="hfis-generation-spark" />
+                    <span className="hfis-generation-spark" />
                     <div className="hfis-generation-progress">
                       <span />
                     </div>
                   </div>
-                  <span>{t("task.generating")}</span>
-                  <small>{t("task.elapsed", { time: duration })}</small>
+                  <span className="hfis-running-title">{t("task.generating")}</span>
                 </div>
               )}
               {task.status === "error" && (
@@ -96,10 +94,12 @@ export function TaskGrid({
                   {task.outputs.length > 1 && <span className="hfis-output-count">{task.outputs.length}</span>}
                 </>
               )}
-              <div className="hfis-card-badges">
-                <span>{task.status === "done" && firstSize ? firstSize : duration}</span>
-                {task.references.length > 0 && <span>{t("task.referenceShort", { count: task.references.length })}</span>}
-              </div>
+              {task.status !== "running" && (
+                <div className="hfis-card-badges">
+                  {task.status === "done" && firstSize && <span>{firstSize}</span>}
+                  {task.references.length > 0 && <span>{t("task.referenceShort", { count: task.references.length })}</span>}
+                </div>
+              )}
             </button>
 
             <div className="hfis-card-body" onDoubleClick={() => onOpenTask(task)}>
@@ -147,9 +147,9 @@ export function TaskGrid({
                 </ActionTooltip>
                 {task.outputs[0] && (
                   <ActionTooltip label={t("task.download")}>
-                    <a href={task.outputs[0]} download={`image-studio-${task.id}.png`} aria-label={t("task.download")}>
+                    <button type="button" onClick={() => void saveGeneratedImage(task.outputs[0], `image-studio-${task.id}`, t)} aria-label={t("task.download")}>
                       <Download size={16} />
-                    </a>
+                    </button>
                   </ActionTooltip>
                 )}
                 <ActionTooltip label={t("task.delete")}>

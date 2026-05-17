@@ -1,4 +1,5 @@
 import { Copy, Download, Edit3, RefreshCw, Star, Trash2, X } from "lucide-react";
+import { saveGeneratedImage } from "../download";
 import type { ImageStudioT } from "../i18n";
 import type { ImageStudioTask } from "../types";
 
@@ -103,9 +104,9 @@ export function TaskDetailModal({
                 <Edit3 size={16} />
               </button>
               {task.outputs[0] && (
-                <a href={task.outputs[0]} download={`image-studio-${task.id}.png`} title={t("task.download")}>
+                <button type="button" onClick={() => void saveGeneratedImage(task.outputs[0], `image-studio-${task.id}`, t)} title={t("task.download")}>
                   <Download size={16} />
-                </a>
+                </button>
               )}
               <button type="button" onClick={() => onDelete(task.id)} title={t("task.delete")}>
                 <Trash2 size={16} />

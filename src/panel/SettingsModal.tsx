@@ -1,8 +1,8 @@
-import { AppSelect } from "@haloforge/plugin-sdk";
 import { X } from "lucide-react";
 import type { ImageStudioT } from "../i18n";
 import type { StudioSettings } from "../types";
 import { IMAGE_MODEL_OPTIONS } from "../modelOptions";
+import { ClosingAppSelect as AppSelect } from "./ClosingAppSelect";
 
 interface SettingsModalProps {
   t: ImageStudioT;
