@@ -61,7 +61,7 @@ npm run plugin:check
 npm run plugin:pack
 
 cd /path/to/HaloForge
-npm run hf -- plugin install local /path/to/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.9.hfpkg --json
+npm run hf -- plugin install local /path/to/hf-plugin-image-studio/dist/package/dev.haloforge.image-studio-0.1.10.hfpkg --json
 npm run hf -- plugin list --json
 ```
 
